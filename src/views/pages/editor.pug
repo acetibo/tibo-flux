@@ -1,0 +1,185 @@
+extends ../layouts/layout
+
+block styles
+  style.
+    .editor-container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      height: 500px;
+    }
+    .editor-container > div {
+      min-height: 0;
+      overflow: hidden;
+    }
+    #code-editor {
+      font-family: 'Fira Code', 'Consolas', monospace;
+      resize: none;
+      tab-size: 2;
+    }
+    #preview-container {
+      background: #fff;
+      background-image:
+        linear-gradient(rgba(0,0,0,0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,0,0,0.05) 1px, transparent 1px);
+      background-size: 20px 20px;
+    }
+    #preview-svg {
+      max-height: 100%;
+      overflow: auto;
+    }
+    #preview-svg svg {
+      max-width: 100%;
+      height: auto;
+    }
+    #console {
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+block content
+  .mb-4.flex.items-center.justify-between
+    h1.text-2xl.font-bold.text-gray-800 Éditeur TiboFlux
+    .flex.gap-2
+      button#btn-parse(class="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700 transition")
+        | Parser
+      button#btn-render(class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 transition")
+        | Générer
+      .relative.group
+        button#btn-export(class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition")
+          | Exporter ▾
+        div(class="absolute right-0 mt-1 bg-white shadow-lg rounded hidden group-hover:block z-10")
+          button(class="block w-full text-left px-4 py-2 hover:bg-gray-100" data-format="svg") SVG
+          button(class="block w-full text-left px-4 py-2 hover:bg-gray-100" data-format="png") PNG
+          button(class="block w-full text-left px-4 py-2 hover:bg-gray-100" data-format="pdf") PDF
+
+  .editor-container
+    .flex.flex-col
+      .bg-gray-800.text-gray-300.px-3.py-1.text-sm.rounded-t
+        | Code TiboFlux
+      textarea#code-editor(class="flex-1 bg-gray-900 text-green-400 p-4 rounded-b focus:outline-none focus:ring-2 focus:ring-indigo-500")
+        | # Exemple de diagramme
+        | flow "Processus de commande"
+        |
+        | [Début] -> {Vérifier stock}
+        |
+        | {Vérifier stock} -> <Disponible?>
+        |
+        | <Disponible?>
+        |   | oui -> {Traiter paiement} -> {Expédier} -> [Fin]
+        |   | non -> {Notifier client} -> [Fin]
+
+    .flex.flex-col
+      .bg-gray-200.px-3.py-1.text-sm.rounded-t.flex.justify-between.items-center
+        span Aperçu
+        span#status.text-xs.text-gray-500 Prêt
+      #preview-container.flex-1.rounded-b.border.border-gray-300.overflow-auto.flex.items-center.justify-center
+        #preview-svg.w-full.h-full.flex.items-center.justify-center
+          p.text-gray-400 Cliquez sur "Générer" pour voir l'aperçu
+
+  .mt-4.bg-white.rounded-lg.shadow.p-4
+    h3.font-semibold.text-gray-700.mb-2 Console
+    pre#console.bg-gray-900.text-gray-300.p-3.rounded.h-32.overflow-auto.text-sm
+      | Bienvenue dans TiboFlux !
+      | Écrivez votre code et cliquez sur "Générer".
+
+block scripts
+  script.
+    const codeEditor = document.getElementById('code-editor');
+    const previewSvg = document.getElementById('preview-svg');
+    const consoleEl = document.getElementById('console');
+    const statusEl = document.getElementById('status');
+
+    function log(message, type = 'info') {
+      const timestamp = new Date().toLocaleTimeString();
+      const colors = { info: '#9ca3af', error: '#ef4444', success: '#22c55e' };
+      consoleEl.innerHTML += `\n<span style="color:${colors[type]}">[${timestamp}] ${message}</span>`;
+      consoleEl.scrollTop = consoleEl.scrollHeight;
+    }
+
+    function setStatus(text, color = 'gray') {
+      statusEl.textContent = text;
+      statusEl.className = `text-xs text-${color}-500`;
+    }
+
+    document.getElementById('btn-parse').addEventListener('click', async () => {
+      try {
+        setStatus('Parsing...', 'yellow');
+        const response = await fetch('/api/parse', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code: codeEditor.value })
+        });
+        const data = await response.json();
+        if (data.success) {
+          log('AST généré avec succès', 'success');
+          log(JSON.stringify(data.ast, null, 2), 'info');
+          setStatus('Parsé', 'green');
+        } else {
+          throw new Error(data.error);
+        }
+      } catch (error) {
+        log(`Erreur: ${error.message}`, 'error');
+        setStatus('Erreur', 'red');
+      }
+    });
+
+    document.getElementById('btn-render').addEventListener('click', async () => {
+      try {
+        setStatus('Génération...', 'yellow');
+        const response = await fetch('/api/render', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code: codeEditor.value })
+        });
+        const data = await response.json();
+        if (data.success) {
+          previewSvg.innerHTML = data.svg;
+          log('Diagramme généré', 'success');
+          setStatus('OK', 'green');
+        } else {
+          throw new Error(data.error);
+        }
+      } catch (error) {
+        log(`Erreur: ${error.message}`, 'error');
+        setStatus('Erreur', 'red');
+      }
+    });
+
+    document.querySelectorAll('[data-format]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const format = btn.dataset.format;
+        try {
+          setStatus(`Export ${format.toUpperCase()}...`, 'yellow');
+          const response = await fetch('/api/export', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ code: codeEditor.value, format })
+          });
+          const data = await response.json();
+          if (data.success) {
+            log(`Export ${format.toUpperCase()} réussi: ${data.filename}`, 'success');
+            if (data.url) {
+              window.open(data.url, '_blank');
+            }
+            setStatus('Exporté', 'green');
+          } else {
+            throw new Error(data.error);
+          }
+        } catch (error) {
+          log(`Erreur export: ${error.message}`, 'error');
+          setStatus('Erreur', 'red');
+        }
+      });
+    });
+
+    // Tab support dans l'éditeur
+    codeEditor.addEventListener('keydown', (e) => {
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        const start = codeEditor.selectionStart;
+        const end = codeEditor.selectionEnd;
+        codeEditor.value = codeEditor.value.substring(0, start) + '  ' + codeEditor.value.substring(end);
+        codeEditor.selectionStart = codeEditor.selectionEnd = start + 2;
+      }
+    });

@@ -1,0 +1,9 @@
+extends ../layouts/layout
+
+block content
+  .text-center.py-16
+    .text-6xl.mb-4 ⚠️
+    h1.text-4xl.font-bold.text-gray-800.mb-4 Erreur
+    p.text-gray-600.mb-8= message || 'Une erreur inattendue est survenue.'
+    a(class="bg-indigo-600 text-white px-6 py-2 rounded hover:bg-indigo-700 transition" href="/")
+      | Retour à l'accueil

@@ -1,0 +1,31 @@
+{
+  "name": "tibo-flux",
+  "version": "1.0.0",
+  "description": "Générateur de diagrammes de flux avec DSL custom",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "build:css": "tools/tailwindcss.exe -i public/assets/css/style.css -o public/assets/css/output.css --watch",
+    "test": "jest",
+    "test:watch": "jest --watch"
+  },
+  "keywords": [
+    "flowchart",
+    "diagram",
+    "dsl",
+    "puppeteer",
+    "svg"
+  ],
+  "author": "Thibaud Bouillie",
+  "license": "MIT",
+  "dependencies": {
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "pug": "^3.0.2",
+    "puppeteer": "^21.6.1"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0"
+  }
+}

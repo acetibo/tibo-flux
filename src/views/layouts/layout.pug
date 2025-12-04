@@ -1,0 +1,25 @@
+doctype html
+html(lang="fr")
+  head
+    meta(charset="UTF-8")
+    meta(name="viewport" content="width=device-width, initial-scale=1.0")
+    title= title || 'TiboFlux'
+    link(rel="stylesheet" href="/assets/css/output.css")
+    block styles
+
+  body.bg-gray-100.min-h-screen
+    nav.bg-indigo-600.text-white.shadow-lg
+      .container.mx-auto.px-4.py-3.flex.items-center.justify-between
+        a.text-xl.font-bold(href="/") TiboFlux
+        .flex.gap-4
+          a(class="hover:text-indigo-200" href="/") Dashboard
+          a(class="hover:text-indigo-200" href="/editor") Éditeur
+
+    main.container.mx-auto.px-4.py-8
+      block content
+
+    footer.bg-gray-800.text-gray-400.py-4.mt-auto
+      .container.mx-auto.px-4.text-center.text-sm
+        | TiboFlux - Générateur de diagrammes de flux
+
+    block scripts
