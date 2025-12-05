@@ -1,5 +1,7 @@
 # Contexte du Projet - TiboFlux
 
+> **IMPORTANT** : Après avoir lu ce fichier, lire obligatoirement `conventions_code.md` qui contient les règles de code et le workflow "push now".
+
 ## Vue d'ensemble
 
 Application de **génération de diagrammes de flux** avec un DSL (Domain Specific Language) custom. Le projet combine apprentissage théorique (standards de représentation de flux) et pratique (création d'un parser, rendu SVG, exports).
