@@ -496,7 +496,15 @@ npm test
 - **Tests dès le début** : 31 tests garantissent la non-régression
 - **Port configurable** : Via `.env` pour éviter les conflits (3002 au lieu de 3000)
 
+### Session 2025-12-05
+
+- **Correction branches conditionnelles** : `parseConnectionChain()` retourne `{ first, last }` pour connecter la décision au premier nœud de chaque branche
+- **Layout DFS avec niveau max** : Algorithme qui calcule le niveau maximum pour chaque nœud (évite les chevauchements)
+- **Fix UX console** : Hauteur fixe du grid (500px) + `overflow: hidden` sur les enfants pour éviter les chevauchements
+- **GitHub configuré** : Dépôt public sur https://github.com/acetibo/tibo-flux
+- **tailwindcss.exe ignoré** : Fichier trop gros (125MB) pour GitHub, ajouté au `.gitignore`
+
 ---
 
-**Dernière mise à jour** : 2024-12-04
-**Version** : 1.0.0
+**Dernière mise à jour** : 2025-12-05
+**Version** : 1.1.0
