@@ -504,6 +504,17 @@ npm test
 - **GitHub configuré** : Dépôt public sur https://github.com/acetibo/tibo-flux
 - **tailwindcss.exe ignoré** : Fichier trop gros (125MB) pour GitHub, ajouté au `.gitignore`
 
+### Session 2025-12-05 (suite) - Parcours d'apprentissage
+
+- **Parcours défini** : 5 modules (Maîtriser l'existant → Lexer → Parser → Algorithmes → Extensions)
+- **Analyse du code existant** réalisée :
+  - Lexer (280 lignes) : Tokenisation avec gestion indentation pour branches
+  - Parser (230 lignes) : Recursive descent, AST avec réutilisation des nœuds
+  - Renderer (395 lignes) : Layout DFS par niveaux, formes SVG par type
+  - Exporter (134 lignes) : SVG direct ou PNG/PDF via Puppeteer
+  - 31 tests unitaires couvrent l'ensemble
+- **Pipeline confirmé** : `Code → Lexer → Tokens → Parser → AST → Renderer → SVG → Exporter`
+
 ---
 
 **Dernière mise à jour** : 2025-12-05

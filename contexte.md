@@ -40,6 +40,7 @@ tibo-flux/
 │   ├── routes/
 │   │   ├── index.js           # Route dashboard
 │   │   ├── editor.js          # Route éditeur
+│   │   ├── cours.js           # Route cours (standards de diagrammes)
 │   │   └── api.js             # API REST (parse/render/export)
 │   ├── services/
 │   │   ├── lexer.js           # Tokenisation du DSL
@@ -53,6 +54,7 @@ tibo-flux/
 │       └── pages/
 │           ├── dashboard.pug  # Page d'accueil avec doc syntaxe
 │           ├── editor.pug     # Éditeur avec aperçu temps réel
+│           ├── cours.pug      # Cours sur les standards de diagrammes
 │           ├── 404.pug        # Page non trouvée
 │           └── error.pug      # Page d'erreur
 ├── public/
@@ -130,6 +132,7 @@ flow "Commande"
 
 ### Pages
 - **`GET /`** : Dashboard avec documentation de la syntaxe
+- **`GET /cours`** : Cours sur les standards de diagrammes (Flowchart, UML, BPMN)
 - **`GET /editor`** : Éditeur avec aperçu temps réel
 
 ### API
@@ -325,6 +328,55 @@ npm run test:watch  # Mode watch
 - Titre : affichage du nom
 - Sécurité : échappement XML
 
+## Parcours d'Apprentissage
+
+### Profil Apprenant
+
+- **Expérience** : Informaticien autodidacte depuis 30 ans (expérience pratique solide, théorie syntaxique à consolider)
+- **Philosophie** : "Opérationnel First" - apprendre en largeur d'abord, profondeur si envie
+- **Objectif immédiat** : Générer des diagrammes pour expliquer des concepts à des collègues non-informaticiens
+- **Objectif long terme** : Maîtriser les concepts pour créer/étendre des DSL, ajouter de nouvelles notations (BPMN, swimlanes...)
+
+### Modules du Parcours
+
+#### 🎯 Module 1 : Maîtriser l'existant (opérationnel)
+- [x] **1.1** Les standards de diagrammes : Flowchart, UML Activity, BPMN - quand utiliser quoi
+  - Page `/cours` créée avec documentation complète et interactive
+- [ ] **1.2** La syntaxe TiboFlux actuelle : exercices pratiques avec des cas réels
+- [ ] **1.3** Générer des diagrammes utiles pour les collègues
+
+**Status** : 🟡 En cours
+
+#### 🔤 Module 2 : Comprendre le Lexer (théorie légère)
+- [ ] **2.1** Concept : Qu'est-ce qu'un lexer ? (tokenisation, expressions régulières)
+- [ ] **2.2** Exercice : Lire et comprendre `lexer.js` ensemble
+- [ ] **2.3** Pratique : Ajouter un nouveau type de token
+
+**Status** : ⚪ À venir
+
+#### 🌳 Module 3 : Comprendre le Parser (théorie légère)
+- [ ] **3.1** Concept : Tokens → AST, grammaires, recursive descent
+- [ ] **3.2** Exercice : Lire et comprendre `parser.js` ensemble
+- [ ] **3.3** Pratique : Étendre la grammaire
+
+**Status** : ⚪ À venir
+
+#### 📐 Module 4 : Algorithmes de graphes (théorie légère)
+- [ ] **4.1** Concepts : DFS/BFS, niveaux, layout de graphes
+- [ ] **4.2** Exercice : Comprendre `renderer.js` et le LayoutEngine
+- [ ] **4.3** Pratique : Améliorer le layout (éviter les croisements, swimlanes...)
+
+**Status** : ⚪ À venir
+
+#### 🚀 Module 5 : Nouvelles notations (extension)
+- [ ] **5.1** BPMN simplifié : events, gateways
+- [ ] **5.2** Swimlanes : acteurs en colonnes
+- [ ] **5.3** Autres notations selon besoins
+
+**Status** : ⚪ À venir
+
+---
+
 ## Prochaines Étapes Possibles
 
 ### Court terme
@@ -366,4 +418,4 @@ npm run test:watch  # Mode watch
 
 **Dernière mise à jour** : 2025-12-05
 **Version** : 1.1.0
-**Status** : MVP fonctionnel - Branches conditionnelles et layout corrigés
+**Status** : MVP fonctionnel - Parcours d'apprentissage défini, Module 1 en cours

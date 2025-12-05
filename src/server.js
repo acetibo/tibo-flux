@@ -4,6 +4,7 @@ const path = require('path');
 
 const indexRoutes = require('./routes/index');
 const editorRoutes = require('./routes/editor');
+const coursRoutes = require('./routes/cours');
 const apiRoutes = require('./routes/api');
 
 const app = express();
@@ -22,6 +23,7 @@ app.use('/outputs', express.static(path.join(__dirname, '..', 'outputs')));
 // Routes
 app.use('/', indexRoutes);
 app.use('/editor', editorRoutes);
+app.use('/cours', coursRoutes);
 app.use('/api', apiRoutes);
 
 // Gestion des erreurs 404
