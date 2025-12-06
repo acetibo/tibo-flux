@@ -2,6 +2,38 @@
 
 > **IMPORTANT** : Après avoir lu ce fichier, lire obligatoirement `conventions_code.md` qui contient les règles de code et le workflow "push now".
 
+---
+
+## Historique des Sessions
+
+### Session 2025-12-06 (dernière) ✅
+
+**Thème** : Tableaux avec colspan/rowspan + Tests TDD
+
+**Réalisé :**
+- ✅ Tableaux Phase 1 : Syntaxe `table`, rendu SVG
+- ✅ Tableaux Phase 3 : Colspan (`:cN`), Rowspan (`:rN`), en-têtes multiples
+- ✅ Export JSON (AST) depuis l'éditeur
+- ✅ Fix lexer : Unicode (É), tirets (CREAI-ORS), signe +
+- ✅ Fix UX : Dropdown menu hover
+- ✅ Tests TDD : 50 tests passent
+- ✅ Documentation mise à jour
+- ✅ Fichiers publics anonymisés (projet open source)
+
+### Prochaine session - TODO
+
+**Thème suggéré** : Refonte UX (séparation Production / Apprentissage)
+
+**Tâches prévues :**
+- [ ] Épurer `/editor` : masquer ou simplifier la console
+- [ ] Retirer ou déplacer le bouton "Parser" (vers `/cours`)
+- [ ] Enrichir `/cours` : ajouter outils de debug (tokens, AST)
+- [ ] Refaire `/` (dashboard) : hub de navigation clair
+
+**Alternative** : Tableaux Phase 2 (exports ASCII, Markdown, HTML)
+
+---
+
 ## Vue d'ensemble
 
 Application de **génération de diagrammes de flux** avec un DSL (Domain Specific Language) custom. Le projet combine apprentissage théorique (standards de représentation de flux) et pratique (création d'un parser, rendu SVG, exports).
@@ -114,6 +146,39 @@ flow "Nom du processus"
 # Ceci est un commentaire
 ```
 
+### Tableaux ✅
+```
+table "Titre du tableau"
+  | header | Colonne 1 | Colonne 2 | Colonne 3 |
+  | Ligne 1 | Valeur | Valeur | Valeur |
+  | Ligne 2 | Valeur | Valeur | Valeur |
+```
+
+**Fonctionnalités actuelles :**
+- En-têtes en gras + fond coloré
+- Bordures visibles
+- Alternance de couleurs pour les lignes
+- En-têtes multiples (plusieurs lignes `| header |...`)
+- Colspan avec `:cN` (ex: `| Catégorie:c2 |`)
+- Rowspan avec `:rN` (ex: `| Valeur:r3 |`)
+- Cellules couvertes marquées `-`
+
+**Exemple avec colspan/rowspan :**
+```
+table "Tableau complexe"
+  | header | Catégorie:c2 | Info |
+  | header | Sous-cat 1 | Sous-cat 2 | Détail |
+  | Ligne 1 | A:r2 | X | 1 |
+  | Ligne 2 | - | Y | 2 |
+```
+
+**Formats d'export prévus (Phase 2) :**
+- SVG ✅ (par défaut)
+- JSON ✅ (AST)
+- ASCII art (`┌─┬─┐`) - à venir
+- Markdown - à venir
+- HTML - à venir
+
 ### Exemple complet
 ```
 # Processus de commande e-commerce
@@ -206,29 +271,43 @@ Exporte le SVG en différents formats :
 
 ### Ce qui fonctionne ✅
 
-- **Lexer complet** : tokenisation de tous les éléments de la syntaxe
-- **Parser fonctionnel** : génération de l'AST avec nœuds et connexions
+- **Lexer complet** : tokenisation de tous les éléments de la syntaxe (flowcharts + tableaux)
+- **Parser fonctionnel** : génération de l'AST avec nœuds, connexions, et tableaux
 - **Branches conditionnelles** : parsing correct des branches `| label -> ...` avec labels "oui"/"non"
+- **Tableaux complets (Phase 1 + 3)** :
+  - Syntaxe `table "Titre"` + lignes `| cell | cell |`
+  - En-têtes multiples avec mot-clé `header`
+  - Colspan (`:cN`) et Rowspan (`:rN`) fonctionnels
+  - Rendu SVG avec fusion de cellules
 - **Rendu SVG** :
   - Formes correctes (terminal arrondi, process rectangulaire, decision losange, I/O parallélogramme)
   - Flèches avec markers
   - Labels sur les connexions
   - Titre du diagramme
   - Layout automatique par niveaux (DFS avec niveau max)
-- **Export** : SVG, PNG, PDF via Puppeteer
+  - Tableaux avec en-têtes colorés, bordures, alternance de couleurs
+- **Export** : SVG, PNG, PDF, JSON (AST)
 - **Interface web** :
   - Dashboard avec documentation
   - Éditeur avec textarea
   - Aperçu SVG (responsive, scrollable)
   - Console de debug
-  - Boutons Parse/Générer/Exporter
-- **Tests** : 31 tests passent (lexer, parser, renderer)
+  - Boutons Parse/Générer/Exporter (dropdown avec JSON)
+- **Tests** : 50 tests passent (lexer, parser, renderer avec tableaux et colspan/rowspan)
 - **Serveur** : Express sur port 3002
 
 ### Ce qui ne fonctionne pas encore ❌
 
 - **Coloration syntaxique** : l'éditeur est un simple textarea sans highlighting
 - **Tailwind CLI** : `tailwindcss.exe` n'est pas inclus (à copier depuis un autre projet)
+- **Tableaux Phase 2** : Exports ASCII art, Markdown, HTML (à venir)
+
+### En cours de développement 🚧
+
+#### UX Production vs Apprentissage
+- **Décision prise** : Séparer `/editor` (production) de `/cours` (apprentissage)
+- **À faire** : Épurer l'éditeur (masquer/simplifier la console, bouton Parser)
+- **À faire** : Enrichir `/cours` avec des exemples interactifs et outils de debug
 
 ### Limitations connues
 
@@ -330,12 +409,11 @@ npm run test:watch  # Mode watch
 
 ## Parcours d'Apprentissage
 
-### Profil Apprenant
-
-- **Expérience** : Informaticien autodidacte depuis 30 ans (expérience pratique solide, théorie syntaxique à consolider)
-- **Philosophie** : "Opérationnel First" - apprendre en largeur d'abord, profondeur si envie
-- **Objectif immédiat** : Générer des diagrammes pour expliquer des concepts à des collègues non-informaticiens
-- **Objectif long terme** : Maîtriser les concepts pour créer/étendre des DSL, ajouter de nouvelles notations (BPMN, swimlanes...)
+Ce projet est conçu comme un **outil d'apprentissage** pour comprendre :
+- La conception de DSL (Domain Specific Language)
+- Le parsing (lexer → tokens → parser → AST)
+- Le rendu SVG programmatique
+- Les standards de diagrammes (Flowchart, UML, BPMN)
 
 ### Modules du Parcours
 
@@ -416,6 +494,6 @@ npm run test:watch  # Mode watch
 
 ---
 
-**Dernière mise à jour** : 2025-12-05
-**Version** : 1.1.0
-**Status** : MVP fonctionnel - Parcours d'apprentissage défini, Module 1 en cours
+**Dernière mise à jour** : 2025-12-06
+**Version** : 1.2.0
+**Status** : MVP fonctionnel - Tableaux avec colspan/rowspan, Export JSON, 41 tests

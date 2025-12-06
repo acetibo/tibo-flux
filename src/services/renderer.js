@@ -19,6 +19,21 @@ const CONFIG = {
     decision: { fill: '#fef3c7', stroke: '#d97706', text: '#78350f' },
     io: { fill: '#d1fae5', stroke: '#059669', text: '#064e3b' },
     arrow: { stroke: '#6b7280', fill: '#6b7280' }
+  },
+  // Configuration des tableaux
+  table: {
+    cellPadding: 12,
+    cellMinWidth: 120,
+    cellHeight: 40,
+    headerFill: '#e0e7ff',
+    headerStroke: '#4f46e5',
+    headerText: '#1e1b4b',
+    borderColor: '#6b7280',
+    rowEvenFill: '#ffffff',
+    rowOddFill: '#f9fafb',
+    cellText: '#374151',
+    fontSize: 14,
+    headerFontSize: 14
   }
 };
 
@@ -382,13 +397,421 @@ class SVGRenderer {
   }
 }
 
+class TableRenderer {
+  constructor(ast) {
+    this.ast = ast;
+    this.isComplex = ast.isComplex || false;
+  }
+
+  escapeXml(str) {
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  // Obtient le texte d'une cellule (gère les deux formats)
+  getCellText(cell) {
+    if (cell === null || cell === undefined) return '';
+    if (typeof cell === 'string') return cell;
+    return cell.text || '';
+  }
+
+  // Obtient colspan d'une cellule
+  getCellColspan(cell) {
+    if (cell === null || cell === undefined) return 1;
+    if (typeof cell === 'string') return 1;
+    return cell.colspan || 1;
+  }
+
+  // Obtient rowspan d'une cellule
+  getCellRowspan(cell) {
+    if (cell === null || cell === undefined) return 1;
+    if (typeof cell === 'string') return 1;
+    return cell.rowspan || 1;
+  }
+
+  // Calcule le nombre réel de colonnes (en comptant les colspan)
+  calculateNumColumns() {
+    let maxCols = 0;
+
+    // Vérifier les en-têtes
+    if (this.isComplex && Array.isArray(this.ast.headers[0])) {
+      // Format complexe : headers est un array de rows
+      this.ast.headers.forEach(row => {
+        let cols = 0;
+        row.forEach(cell => {
+          cols += this.getCellColspan(cell);
+        });
+        maxCols = Math.max(maxCols, cols);
+      });
+    } else {
+      // Format simple
+      maxCols = this.ast.headers.length;
+    }
+
+    // Vérifier les lignes de données
+    this.ast.rows.forEach(row => {
+      let cols = 0;
+      row.forEach(cell => {
+        cols += this.getCellColspan(cell);
+      });
+      maxCols = Math.max(maxCols, cols);
+    });
+
+    return maxCols;
+  }
+
+  // Calcule la largeur de chaque colonne
+  calculateColumnWidths() {
+    const { table } = CONFIG;
+    const numCols = this.calculateNumColumns();
+    const widths = Array(numCols).fill(table.cellMinWidth);
+
+    // Fonction pour traiter une ligne
+    const processRow = (row) => {
+      let colIdx = 0;
+      row.forEach(cell => {
+        const text = this.getCellText(cell);
+        const colspan = this.getCellColspan(cell);
+
+        if (colspan === 1 && text) {
+          const textWidth = text.length * 8 + table.cellPadding * 2;
+          widths[colIdx] = Math.max(widths[colIdx], textWidth);
+        }
+        colIdx += colspan;
+      });
+    };
+
+    // Traiter les en-têtes
+    if (this.isComplex && Array.isArray(this.ast.headers[0])) {
+      this.ast.headers.forEach(processRow);
+    } else {
+      // Format simple - convertir en format ligne
+      const headerRow = this.ast.headers.map(h => ({ text: h, colspan: 1, rowspan: 1 }));
+      processRow(headerRow);
+    }
+
+    // Traiter les données
+    this.ast.rows.forEach(processRow);
+
+    return widths;
+  }
+
+  // Calcule le nombre de lignes d'en-tête
+  getNumHeaderRows() {
+    if (this.isComplex && Array.isArray(this.ast.headers[0])) {
+      return this.ast.headers.length;
+    }
+    return 1;
+  }
+
+  render() {
+    // Déléguer au renderer approprié
+    if (this.isComplex) {
+      return this.renderComplex();
+    }
+    return this.renderSimple();
+  }
+
+  // Rendu simple (rétrocompatibilité)
+  renderSimple() {
+    const { table, padding } = CONFIG;
+    const columnWidths = this.calculateColumnWidths();
+    const numHeaderRows = this.getNumHeaderRows();
+    const numRows = this.ast.rows.length + numHeaderRows;
+
+    // Si les lignes ont plus de colonnes que les en-têtes, ajouter un en-tête vide
+    const maxRowCols = Math.max(...this.ast.rows.map(r => r.length), 0);
+    const headers = maxRowCols > this.ast.headers.length
+      ? ['', ...this.ast.headers]
+      : this.ast.headers;
+
+    const totalWidth = columnWidths.reduce((sum, w) => sum + w, 0);
+    const totalHeight = numRows * table.cellHeight;
+
+    const svgWidth = totalWidth + padding * 2;
+    const svgHeight = totalHeight + padding * 2 + 40;
+
+    let svg = `
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 ${svgWidth} ${svgHeight}"
+        width="${svgWidth}"
+        height="${svgHeight}"
+      >
+    `;
+
+    svg += `
+      <text
+        x="${svgWidth / 2}"
+        y="25"
+        text-anchor="middle"
+        fill="#374151"
+        font-size="18"
+        font-weight="bold"
+        font-family="Arial, sans-serif"
+      >${this.escapeXml(this.ast.name)}</text>
+    `;
+
+    const startY = padding + 30;
+    const startX = padding;
+
+    // Rendu des en-têtes
+    let x = startX;
+    headers.forEach((header, colIdx) => {
+      const width = columnWidths[colIdx];
+      svg += `
+        <rect
+          x="${x}" y="${startY}"
+          width="${width}" height="${table.cellHeight}"
+          fill="${table.headerFill}"
+          stroke="${table.borderColor}"
+          stroke-width="1"
+        />
+        <text
+          x="${x + width / 2}"
+          y="${startY + table.cellHeight / 2 + 5}"
+          text-anchor="middle"
+          fill="${table.headerText}"
+          font-size="${table.headerFontSize}"
+          font-weight="bold"
+          font-family="Arial, sans-serif"
+        >${this.escapeXml(header)}</text>
+      `;
+      x += width;
+    });
+
+    // Rendu des lignes de données
+    this.ast.rows.forEach((row, rowIdx) => {
+      const y = startY + (rowIdx + 1) * table.cellHeight;
+      const fillColor = rowIdx % 2 === 0 ? table.rowEvenFill : table.rowOddFill;
+
+      x = startX;
+      row.forEach((cell, colIdx) => {
+        const width = columnWidths[colIdx] || table.cellMinWidth;
+        const isFirstColumn = colIdx === 0;
+
+        svg += `
+          <rect
+            x="${x}" y="${y}"
+            width="${width}" height="${table.cellHeight}"
+            fill="${fillColor}"
+            stroke="${table.borderColor}"
+            stroke-width="1"
+          />
+          <text
+            x="${x + width / 2}"
+            y="${y + table.cellHeight / 2 + 5}"
+            text-anchor="middle"
+            fill="${table.cellText}"
+            font-size="${table.fontSize}"
+            font-weight="${isFirstColumn ? 'bold' : 'normal'}"
+            font-family="Arial, sans-serif"
+          >${this.escapeXml(cell || '')}</text>
+        `;
+        x += width;
+      });
+    });
+
+    svg += '</svg>';
+    return svg.trim();
+  }
+
+  // Rendu complexe avec colspan/rowspan
+  renderComplex() {
+    const { table, padding } = CONFIG;
+    const columnWidths = this.calculateColumnWidths();
+    const numHeaderRows = this.getNumHeaderRows();
+    const numDataRows = this.ast.rows.length;
+    const totalRows = numHeaderRows + numDataRows;
+
+    const totalWidth = columnWidths.reduce((sum, w) => sum + w, 0);
+    const totalHeight = totalRows * table.cellHeight;
+
+    const svgWidth = totalWidth + padding * 2;
+    const svgHeight = totalHeight + padding * 2 + 40;
+
+    let svg = `
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 ${svgWidth} ${svgHeight}"
+        width="${svgWidth}"
+        height="${svgHeight}"
+      >
+    `;
+
+    svg += `
+      <text
+        x="${svgWidth / 2}"
+        y="25"
+        text-anchor="middle"
+        fill="#374151"
+        font-size="18"
+        font-weight="bold"
+        font-family="Arial, sans-serif"
+      >${this.escapeXml(this.ast.name)}</text>
+    `;
+
+    const startY = padding + 30;
+    const startX = padding;
+
+    // Map des cellules couvertes par rowspan (clé: "row,col")
+    const coveredCells = new Set();
+
+    // Rendu des en-têtes (peut avoir plusieurs lignes)
+    this.ast.headers.forEach((headerRow, headerRowIdx) => {
+      const y = startY + headerRowIdx * table.cellHeight;
+      let colIdx = 0;
+      let x = startX;
+
+      headerRow.forEach(cell => {
+        // Sauter les cellules couvertes
+        while (coveredCells.has(`${headerRowIdx},${colIdx}`)) {
+          x += columnWidths[colIdx];
+          colIdx++;
+        }
+
+        if (cell === null) {
+          // Cellule vide (couverte par un rowspan)
+          colIdx++;
+          return;
+        }
+
+        const text = this.getCellText(cell);
+        const colspan = this.getCellColspan(cell);
+        const rowspan = this.getCellRowspan(cell);
+
+        // Calculer la largeur totale (somme des colonnes couvertes)
+        let cellWidth = 0;
+        for (let c = 0; c < colspan; c++) {
+          cellWidth += columnWidths[colIdx + c] || table.cellMinWidth;
+        }
+
+        // Calculer la hauteur totale
+        const cellHeight = rowspan * table.cellHeight;
+
+        // Marquer les cellules couvertes par ce rowspan/colspan
+        for (let r = 0; r < rowspan; r++) {
+          for (let c = 0; c < colspan; c++) {
+            if (r > 0 || c > 0) {
+              coveredCells.add(`${headerRowIdx + r},${colIdx + c}`);
+            }
+          }
+        }
+
+        // Dessiner la cellule
+        svg += `
+          <rect
+            x="${x}" y="${y}"
+            width="${cellWidth}" height="${cellHeight}"
+            fill="${table.headerFill}"
+            stroke="${table.borderColor}"
+            stroke-width="1"
+          />
+          <text
+            x="${x + cellWidth / 2}"
+            y="${y + cellHeight / 2 + 5}"
+            text-anchor="middle"
+            fill="${table.headerText}"
+            font-size="${table.headerFontSize}"
+            font-weight="bold"
+            font-family="Arial, sans-serif"
+          >${this.escapeXml(text)}</text>
+        `;
+
+        x += cellWidth;
+        colIdx += colspan;
+      });
+    });
+
+    // Rendu des lignes de données
+    this.ast.rows.forEach((row, dataRowIdx) => {
+      const rowIdx = numHeaderRows + dataRowIdx;
+      const y = startY + rowIdx * table.cellHeight;
+      const fillColor = dataRowIdx % 2 === 0 ? table.rowEvenFill : table.rowOddFill;
+
+      let colIdx = 0;
+      let x = startX;
+
+      row.forEach(cell => {
+        // Sauter les cellules couvertes
+        while (coveredCells.has(`${rowIdx},${colIdx}`)) {
+          x += columnWidths[colIdx];
+          colIdx++;
+        }
+
+        if (cell === null) {
+          colIdx++;
+          return;
+        }
+
+        const text = this.getCellText(cell);
+        const colspan = this.getCellColspan(cell);
+        const rowspan = this.getCellRowspan(cell);
+        const isFirstColumn = colIdx === 0;
+
+        let cellWidth = 0;
+        for (let c = 0; c < colspan; c++) {
+          cellWidth += columnWidths[colIdx + c] || table.cellMinWidth;
+        }
+
+        const cellHeight = rowspan * table.cellHeight;
+
+        // Marquer les cellules couvertes
+        for (let r = 0; r < rowspan; r++) {
+          for (let c = 0; c < colspan; c++) {
+            if (r > 0 || c > 0) {
+              coveredCells.add(`${rowIdx + r},${colIdx + c}`);
+            }
+          }
+        }
+
+        svg += `
+          <rect
+            x="${x}" y="${y}"
+            width="${cellWidth}" height="${cellHeight}"
+            fill="${fillColor}"
+            stroke="${table.borderColor}"
+            stroke-width="1"
+          />
+          <text
+            x="${x + cellWidth / 2}"
+            y="${y + cellHeight / 2 + 5}"
+            text-anchor="middle"
+            fill="${table.cellText}"
+            font-size="${table.fontSize}"
+            font-weight="${isFirstColumn ? 'bold' : 'normal'}"
+            font-family="Arial, sans-serif"
+          >${this.escapeXml(text)}</text>
+        `;
+
+        x += cellWidth;
+        colIdx += colspan;
+      });
+    });
+
+    svg += '</svg>';
+    return svg.trim();
+  }
+}
+
 function render(ast) {
+  // Détecter si c'est un tableau ou un flowchart
+  if (ast.type === NodeType.TABLE) {
+    const renderer = new TableRenderer(ast);
+    return renderer.render();
+  }
+
   const renderer = new SVGRenderer(ast);
   return renderer.render();
 }
 
 module.exports = {
   SVGRenderer,
+  TableRenderer,
   LayoutEngine,
   render,
   CONFIG

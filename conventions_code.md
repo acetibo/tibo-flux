@@ -334,7 +334,30 @@ Lors de l'exécution de tests Jest nécessitant un serveur actif, plusieurs inst
 
 ---
 
-## Règle #5 : Bonnes Pratiques de Débogage
+## Règle #5 : Screenshots de Débogage
+
+### Emplacement des captures d'écran
+
+Tous les screenshots de débogage sont stockés dans :
+```
+/tests/debug/img/
+```
+
+### Convention de nommage
+
+- `debug1.png`, `debug2.png`, etc. pour les captures numérotées
+- Si l'utilisateur dit **"regarde debug[X].png"**, chercher dans `/tests/debug/img/debug[X].png`
+
+### Exemple d'utilisation
+
+```
+Utilisateur : "regarde debug5.png"
+→ Claude lit : /tests/debug/img/debug5.png
+```
+
+---
+
+## Règle #6 : Bonnes Pratiques de Débogage
 
 ### Débogage du Lexer
 
@@ -474,6 +497,83 @@ npm test
 
 ---
 
+## Règle #7 : Syntaxe des Tableaux
+
+### Déclaration d'un tableau
+
+```
+table "Titre du tableau"
+  | header | Colonne 1 | Colonne 2 | Colonne 3 |
+  | Ligne 1 | Valeur | Valeur | Valeur |
+  | Ligne 2 | Valeur | Valeur | Valeur |
+```
+
+### Règles de syntaxe
+
+1. **`table "Titre"`** : Déclare un nouveau tableau avec son titre
+2. **Chaque ligne** commence et finit par `|`
+3. **Première ligne** : en-têtes (mot-clé `header` dans la première cellule)
+4. **Cellules** : séparées par `|`
+5. **Espaces** : ignorés autour des `|`
+
+### Structure de l'AST
+
+```javascript
+{
+  type: "Table",
+  name: "Titre du tableau",
+  headers: ["Colonne 1", "Colonne 2", "Colonne 3"],
+  rows: [
+    ["Ligne 1", "Valeur", "Valeur", "Valeur"],
+    ["Ligne 2", "Valeur", "Valeur", "Valeur"]
+  ],
+  options: {
+    firstColumnBold: true,  // Phase 3
+    hasSubHeaders: false    // Phase 3
+  }
+}
+```
+
+### Rendu SVG
+
+| Élément | Style |
+|---------|-------|
+| En-têtes | Fond coloré (#e0e7ff), texte gras |
+| Bordures | Stroke #6b7280 |
+| Lignes paires | Fond blanc |
+| Lignes impaires | Fond léger (#f9fafb) |
+| Première colonne | Texte gras (si paramétré) |
+
+### Colspan et Rowspan (Phase 3)
+
+Les cellules peuvent fusionner en utilisant des modificateurs :
+
+```
+table "Tableau avec fusion"
+  | header | Catégorie:c2 | Détails |
+  | header | Sous-cat 1 | Sous-cat 2 | Info |
+  | Ligne 1 | Valeur:r2 | A | X |
+  | Ligne 2 | - | B | Y |
+```
+
+**Modificateurs disponibles :**
+- `:cN` - Colspan : la cellule s'étend sur N colonnes
+- `:rN` - Rowspan : la cellule s'étend sur N lignes
+- `-` seul dans une cellule = cellule couverte par un rowspan
+
+**Règles de parsing :**
+1. Les modificateurs sont extraits du texte de la cellule
+2. Ordre : `:c2:r3` ou `:r3:c2` (les deux fonctionnent)
+3. Les cellules couvertes par rowspan doivent contenir `-`
+
+### Phases d'implémentation
+
+- **Phase 1** ✅ : Syntaxe de base, rendu SVG
+- **Phase 2** : Exports (ASCII art, Markdown, HTML) - À venir
+- **Phase 3** ✅ : Colspan/rowspan, en-têtes multiples
+
+---
+
 ## Extensions Futures
 
 ### À venir
@@ -514,8 +614,83 @@ npm test
   - Exporter (134 lignes) : SVG direct ou PNG/PDF via Puppeteer
   - 31 tests unitaires couvrent l'ensemble
 - **Pipeline confirmé** : `Code → Lexer → Tokens → Parser → AST → Renderer → SVG → Exporter`
+- **Page /cours créée** : Documentation interactive sur Flowchart, UML Activity, BPMN
+
+### Session 2025-12-05 (suite 2) - Tableaux
+
+- **Cas réel analysé** : Passation portail Sport Santé (scénarios)
+- **Constat** : Un tableau comparatif est plus adapté qu'un flowchart pour certains cas
+- **Décision** : Ajouter le support des tableaux à TiboFlux
+- **Syntaxe définie** : `table "Titre"` + lignes `| cell | cell |`
+- **Phases d'implémentation** :
+  - Phase 1 : Syntaxe de base, rendu SVG
+  - Phase 2 : Exports ASCII art, Markdown, HTML
+  - Phase 3 : Options avancées (firstColumnBold, colspan)
+- **Leçon** : Toujours poser des questions avant de proposer un diagramme - comprendre le besoin réel
+- **Bug 6 - Caractères spéciaux dans identifiants** :
+  - Problème : "CREAI-ORS Occitanie" et "Métier + Technique" étaient mal tokenisés
+  - Cause : Le lexer consommait `-` comme début de flèche et ignorait `+`
+  - Solution : Vérifier si `-` forme une flèche AVANT de le consommer, inclure `-` et `+` dans `scanIdentifier()`
+  - Règle : Un tiret `-` fait partie de l'identifiant sauf si suivi de `>` ou `->`
+- **Bug 7 - Première colonne sans en-tête** :
+  - Problème : Tableau avec labels de ligne n'avait pas d'en-tête pour la première colonne
+  - Solution : Le renderer ajoute automatiquement une cellule vide en en-tête si rows > headers
+- **Unicode dans le lexer** :
+  - Problème : "Évolution" devenait "volution" (É perdu)
+  - Cause : L'approche whitelist (regex positive) ne capturait pas les caractères Unicode
+  - Solution : Approche blacklist - accepter tout sauf les délimiteurs connus (`|`, `[`, `]`, etc.)
+  - Règle : Le lexer utilise une approche négative pour `scanIdentifier()`
+- **Colspan/Rowspan (Phase 3)** :
+  - Syntaxe `:cN` et `:rN` dans les cellules
+  - Parser extrait les modificateurs avec regex `/:([rc])(\d+)/g`
+  - Renderer calcule les cellules couvertes avec `coveredCells` Set
+  - Cellules couvertes marquées `-` dans le DSL
+- **Export JSON de l'AST** :
+  - Ajouté bouton dans le dropdown Exporter
+  - Téléchargement côté client (pas besoin d'API)
+  - Format : `diagram-{timestamp}.json`
+- **Fix UX Dropdown** :
+  - Problème : Le menu disparaissait en descendant la souris
+  - Cause : `mt-1` créait un gap entre le bouton et le menu
+  - Solution : Wrapper avec `pt-1` (padding interne, pas de gap)
 
 ---
 
-**Dernière mise à jour** : 2025-12-05
-**Version** : 1.1.0
+## Règle #8 : Architecture UX
+
+### Séparation Production / Apprentissage
+
+L'application a **deux modes** distincts :
+
+| Route | Mode | Usage |
+|-------|------|-------|
+| `/editor` | Production | Créer des diagrammes/tableaux pour les collègues |
+| `/cours` | Apprentissage | Comprendre le DSL, les standards, le parsing |
+| `/` | Navigation | Accès rapide aux deux modes |
+
+### Principes UX
+
+1. **L'éditeur (`/editor`) doit être épuré** :
+   - Focus sur la création
+   - Pas de fonctionnalités de debug visibles par défaut
+   - Console masquée ou en mode "erreurs uniquement"
+
+2. **Le cours (`/cours`) peut être riche** :
+   - Documentation de la syntaxe
+   - Exemples interactifs
+   - Outils de debug (voir les tokens, l'AST)
+
+3. **Le dashboard (`/`) est un hub** :
+   - Raccourcis vers l'éditeur et les cours
+   - Optionnel : progression d'apprentissage
+
+### Usage prévu
+
+- **Outil personnel** : Conçu pour un usage individuel
+- **Partage des exports** : Les diagrammes/tableaux générés peuvent être partagés (pas l'outil lui-même)
+- **Open source** : Le code est libre, chacun peut l'adapter à ses besoins
+
+---
+
+**Dernière mise à jour** : 2025-12-06
+**Version** : 1.2.0

@@ -73,4 +73,49 @@ describe('Renderer TiboFlux', () => {
       expect(svg).toContain('&amp;');
     });
   });
+
+  describe('Tableaux', () => {
+    test('génère un SVG valide pour un tableau', () => {
+      const code = `
+table "Test"
+  | header | A | B |
+  | X | 1 | 2 |
+`;
+      const svg = renderCode(code);
+      expect(svg).toContain('<svg');
+      expect(svg).toContain('</svg>');
+    });
+
+    test('affiche le titre du tableau', () => {
+      const code = `
+table "Mon Tableau"
+  | header | Col |
+  | Ligne | Val |
+`;
+      const svg = renderCode(code);
+      expect(svg).toContain('Mon Tableau');
+    });
+
+    test('affiche les en-têtes', () => {
+      const code = `
+table "Test"
+  | header | Colonne1 | Colonne2 |
+  | X | A | B |
+`;
+      const svg = renderCode(code);
+      expect(svg).toContain('Colonne1');
+      expect(svg).toContain('Colonne2');
+    });
+
+    test('affiche les données des cellules', () => {
+      const code = `
+table "Test"
+  | header | A |
+  | Label | Valeur |
+`;
+      const svg = renderCode(code);
+      expect(svg).toContain('Label');
+      expect(svg).toContain('Valeur');
+    });
+  });
 });

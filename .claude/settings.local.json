@@ -12,7 +12,8 @@
       "Bash(gh repo create:*)",
       "Bash(git remote add:*)",
       "Bash(git push:*)",
-      "Bash(git rm:*)"
+      "Bash(git rm:*)",
+      "Bash(node debug-table.js:*)"
     ],
     "deny": [],
     "ask": []

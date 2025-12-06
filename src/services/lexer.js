@@ -6,6 +6,7 @@
 const TokenType = {
   // Mots-clés
   FLOW: 'FLOW',
+  TABLE: 'TABLE',
 
   // Nœuds
   TERMINAL: 'TERMINAL',       // [texte]
@@ -134,7 +135,24 @@ class Lexer {
     const startColumn = this.column;
     let value = '';
 
-    while (!this.isAtEnd() && /[a-zA-Z0-9_àâäéèêëïîôùûüç\s]/.test(this.peek()) && this.peek() !== '\n') {
+    // Caractères qui terminent un identifiant (délimiteurs)
+    const delimiters = new Set(['|', '[', ']', '{', '}', '<', '>', '(', ')', '#', '"', "'", '\n', '\0']);
+
+    while (!this.isAtEnd() && this.peek() !== '\n') {
+      const char = this.peek();
+      const next = this.peek(1);
+
+      // Délimiteur = fin de l'identifiant
+      if (delimiters.has(char)) {
+        break;
+      }
+
+      // Tiret : accepté sauf si c'est une flèche
+      if (char === '-' && (next === '>' || next === '-')) {
+        break;
+      }
+
+      // Tout autre caractère fait partie de l'identifiant
       value += this.advance();
     }
 
@@ -143,6 +161,8 @@ class Lexer {
     // Mots-clés
     if (value.toLowerCase() === 'flow') {
       this.tokens.push(new Token(TokenType.FLOW, value, this.line, startColumn));
+    } else if (value.toLowerCase() === 'table') {
+      this.tokens.push(new Token(TokenType.TABLE, value, this.line, startColumn));
     } else if (value) {
       this.tokens.push(new Token(TokenType.IDENTIFIER, value, this.line, startColumn));
     }
@@ -232,21 +252,28 @@ class Lexer {
         continue;
       }
 
-      // Flèches
+      // Flèches (vérifie AVANT de consommer si c'est vraiment une flèche)
       if (char === '-') {
-        const startColumn = this.column;
-        this.advance();
-        if (this.peek() === '-') {
-          this.advance();
-          if (this.peek() === '>') {
-            this.advance();
-            this.tokens.push(new Token(TokenType.ARROW, '-->', this.line, startColumn));
+        const next = this.peek(1);
+        const nextNext = this.peek(2);
+
+        // Vérifie si c'est une flèche -> ou -->
+        if (next === '>' || (next === '-' && nextNext === '>')) {
+          const startColumn = this.column;
+          this.advance(); // Consomme le premier -
+          if (this.peek() === '-') {
+            this.advance(); // Consomme le second -
+            if (this.peek() === '>') {
+              this.advance(); // Consomme le >
+              this.tokens.push(new Token(TokenType.ARROW, '-->', this.line, startColumn));
+            }
+          } else if (this.peek() === '>') {
+            this.advance(); // Consomme le >
+            this.tokens.push(new Token(TokenType.ARROW, '->', this.line, startColumn));
           }
-        } else if (this.peek() === '>') {
-          this.advance();
-          this.tokens.push(new Token(TokenType.ARROW, '->', this.line, startColumn));
+          continue;
         }
-        continue;
+        // Si ce n'est pas une flèche, on laisse tomber pour qu'il soit traité comme partie d'un identifiant
       }
 
       // Pipe pour les branches
@@ -256,8 +283,9 @@ class Lexer {
         continue;
       }
 
-      // Identifiants et mots-clés
-      if (/[a-zA-Z_àâäéèêëïîôùûüç]/.test(char)) {
+      // Identifiants et mots-clés (tout caractère non-délimiteur)
+      // Utilise une approche négative : tout sauf les délimiteurs connus
+      if (!/^[\s\|\[\]\{\}<>\(\)#"'\-]$/.test(char) || (char === '-' && this.peek(1) !== '>' && this.peek(1) !== '-')) {
         this.scanIdentifier();
         continue;
       }

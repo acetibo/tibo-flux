@@ -48,10 +48,12 @@ block content
       .relative.group
         button#btn-export(class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition")
           | Exporter ▾
-        div(class="absolute right-0 mt-1 bg-white shadow-lg rounded hidden group-hover:block z-10")
-          button(class="block w-full text-left px-4 py-2 hover:bg-gray-100" data-format="svg") SVG
-          button(class="block w-full text-left px-4 py-2 hover:bg-gray-100" data-format="png") PNG
-          button(class="block w-full text-left px-4 py-2 hover:bg-gray-100" data-format="pdf") PDF
+        div(class="absolute right-0 top-full pt-1 hidden group-hover:block z-10")
+          div(class="bg-white shadow-lg rounded")
+            button(class="block w-full text-left px-4 py-2 hover:bg-gray-100 rounded-t" data-format="svg") SVG
+            button(class="block w-full text-left px-4 py-2 hover:bg-gray-100" data-format="png") PNG
+            button(class="block w-full text-left px-4 py-2 hover:bg-gray-100" data-format="pdf") PDF
+            button(class="block w-full text-left px-4 py-2 hover:bg-gray-100 border-t rounded-b" data-format="json") JSON (AST)
 
   .editor-container
     .flex.flex-col
@@ -151,6 +153,33 @@ block scripts
         const format = btn.dataset.format;
         try {
           setStatus(`Export ${format.toUpperCase()}...`, 'yellow');
+
+          // Export JSON (AST) - téléchargement direct
+          if (format === 'json') {
+            const response = await fetch('/api/parse', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ code: codeEditor.value })
+            });
+            const data = await response.json();
+            if (data.success) {
+              // Créer et télécharger le fichier JSON
+              const blob = new Blob([JSON.stringify(data.ast, null, 2)], { type: 'application/json' });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = `diagram-${Date.now()}.json`;
+              a.click();
+              URL.revokeObjectURL(url);
+              log('Export JSON réussi', 'success');
+              setStatus('Exporté', 'green');
+            } else {
+              throw new Error(data.error);
+            }
+            return;
+          }
+
+          // Export SVG/PNG/PDF via l'API
           const response = await fetch('/api/export', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },

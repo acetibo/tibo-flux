@@ -96,5 +96,58 @@ flow "Test"
       const tokens = tokenize('{Vérifier données}');
       expect(tokens[0].value).toBe('Vérifier données');
     });
+
+    test('gère les caractères Unicode en début de mot (É majuscule)', () => {
+      const tokens = tokenize('| Évolution |');
+      const identifiers = tokens.filter(t => t.type === TokenType.IDENTIFIER);
+      expect(identifiers[0].value).toBe('Évolution');
+    });
+
+    test('gère les tirets dans les identifiants (CREAI-ORS)', () => {
+      const tokens = tokenize('| CREAI-ORS Occitanie |');
+      const identifiers = tokens.filter(t => t.type === TokenType.IDENTIFIER);
+      expect(identifiers[0].value).toBe('CREAI-ORS Occitanie');
+    });
+
+    test('gère le signe + dans les identifiants', () => {
+      const tokens = tokenize('| Métier + Technique |');
+      const identifiers = tokens.filter(t => t.type === TokenType.IDENTIFIER);
+      expect(identifiers[0].value).toBe('Métier + Technique');
+    });
+
+    test('distingue tiret identifiant et flèche ->', () => {
+      const tokens = tokenize('| CREAI-ORS | -> | Autre |');
+      expect(tokens.filter(t => t.type === TokenType.IDENTIFIER)[0].value).toBe('CREAI-ORS');
+      expect(tokens.filter(t => t.type === TokenType.ARROW)).toHaveLength(1);
+    });
+  });
+
+  describe('Tableaux', () => {
+    test('tokenize le mot-clé table', () => {
+      const tokens = tokenize('table "Test"');
+      expect(tokens[0].type).toBe(TokenType.TABLE);
+      expect(tokens[1].type).toBe(TokenType.STRING);
+      expect(tokens[1].value).toBe('Test');
+    });
+
+    test('tokenize une ligne de tableau', () => {
+      const tokens = tokenize('| A | B | C |');
+      const pipeCount = tokens.filter(t => t.type === TokenType.PIPE).length;
+      expect(pipeCount).toBe(4);
+    });
+
+    test('tokenize un tableau complet', () => {
+      const code = `
+table "Mon tableau"
+  | header | Col1 | Col2 |
+  | Ligne1 | A | B |
+`;
+      const tokens = tokenize(code);
+      const types = tokens.map(t => t.type);
+      expect(types).toContain(TokenType.TABLE);
+      expect(types).toContain(TokenType.STRING);
+      expect(types).toContain(TokenType.PIPE);
+      expect(types).toContain(TokenType.IDENTIFIER);
+    });
   });
 });
