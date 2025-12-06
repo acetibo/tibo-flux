@@ -6,7 +6,26 @@
 
 ## Historique des Sessions
 
-### Session 2025-12-06 (dernière) ✅
+### Session 2025-12-07 (dernière) ✅
+
+**Thème** : Améliorations UX - CodeMirror + Modales
+
+**Réalisé :**
+- ✅ Coloration syntaxique (CodeMirror) avec mode custom TiboFlux
+  - Keywords (flow, table, header) en violet
+  - Nœuds colorés par type ([terminal], {process}, <decision>, (io))
+  - Flèches, pipes, strings, commentaires stylisés
+- ✅ Raccourci Ctrl+S pour sauvegarder
+- ✅ Confirmation avant de quitter si non sauvegardé (beforeunload)
+- ✅ Modales : remplacement des menus dropdown par des modales
+  - Modale "Nouveau" (templates)
+  - Modale "Ouvrir" (documents sauvegardés)
+  - Modale "Exporter" (tous les formats)
+- ✅ Fix styles boutons (inline styles pour compatibilité CSS)
+- ✅ Options d'export grisées selon le type de contenu
+- ✅ 69 tests passent
+
+### Session 2025-12-06 ✅
 
 **Thème** : Tableaux Phase 2 + Persistance SQLite
 
@@ -17,16 +36,17 @@
 - ✅ UI éditeur : Nouveau/Ouvrir/Sauvegarder/Supprimer
 - ✅ Fix renderer : normalisation headers pour tableaux simples
 - ✅ Fix CSS : aperçu SVG aligné en haut (plus de troncature)
-- ✅ 69 tests passent
 
 ### Prochaine session - TODO
 
-**Thème suggéré** : Améliorations UX
+**Thème suggéré** : Export ASCII art Flowcharts
 
 **Tâches prévues :**
-- [ ] Coloration syntaxique (CodeMirror)
-- [ ] Raccourci clavier Ctrl+S pour sauvegarder
-- [ ] Confirmation avant de quitter si non sauvegardé
+- [ ] Export ASCII art pour flowcharts (comme pour les tableaux)
+  - Calcul des largeurs de colonnes
+  - Connexions (`│`, `─`, coins `┌┐└┘`)
+  - Branchements (décisions avec 2+ sorties)
+  - Fusion des branches
 
 **Alternative** : Swimlanes (Module 5)
 
@@ -492,6 +512,6 @@ Ce projet est conçu comme un **outil d'apprentissage** pour comprendre :
 
 ---
 
-**Dernière mise à jour** : 2025-12-06
-**Version** : 1.4.0
-**Status** : MVP fonctionnel - Exports tableaux, Persistance SQLite, 69 tests
+**Dernière mise à jour** : 2025-12-07
+**Version** : 1.5.0
+**Status** : MVP fonctionnel - CodeMirror, Modales, 69 tests
