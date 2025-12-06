@@ -2,53 +2,69 @@ extends ../layouts/layout
 
 block content
   .text-center.mb-12
-    h1.text-4xl.font-bold.text-gray-800.mb-4 TiboFlux
+    h1.text-5xl.font-bold.text-gray-800.mb-4 TiboFlux
     p.text-xl.text-gray-600 Générateur de diagrammes de flux avec DSL personnalisé
 
-  div(class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12")
-    .bg-white.rounded-lg.shadow-md.p-6
-      h3.text-lg.font-semibold.text-indigo-600.mb-2 Flowcharts
-      p.text-gray-600.mb-4 Créez des organigrammes classiques avec décisions et boucles
-      .text-5xl.text-center.py-4 📊
+  //- Deux modes principaux
+  div(class="grid grid-cols-1 md:grid-cols-2 max-w-4xl mx-auto mb-12" style="gap: 2rem;")
 
-    .bg-white.rounded-lg.shadow-md.p-6
-      h3.text-lg.font-semibold.text-indigo-600.mb-2 Diagrammes d'activité
-      p.text-gray-600.mb-4 Modélisez des processus avec swimlanes et parallélisme
-      .text-5xl.text-center.py-4 🔄
+    //- Mode Production
+    a(class="group block" href="/editor")
+      div(class="bg-white rounded-xl shadow-lg border-2 border-transparent hover:border-indigo-500 transition-all hover:shadow-xl" style="padding: 2rem;")
+        .flex.items-center.gap-4.mb-4
+          .text-5xl 📝
+          div
+            h2.text-2xl.font-bold.text-indigo-600 Éditeur
+            p.text-gray-500 Mode production
+        p.text-gray-600.mb-4 Créez des diagrammes et tableaux pour vos collègues. Interface épurée, focus sur le résultat.
+        .flex.flex-wrap.gap-2
+          span.bg-indigo-100.text-indigo-700.px-3.py-1.rounded-full.text-sm Flowcharts
+          span.bg-indigo-100.text-indigo-700.px-3.py-1.rounded-full.text-sm Tableaux
+          span.bg-indigo-100.text-indigo-700.px-3.py-1.rounded-full.text-sm Export SVG/PNG/PDF
+        div(class="mt-4 text-indigo-600 font-semibold group-hover:translate-x-2 transition-transform")
+          | Ouvrir l'éditeur →
 
-    .bg-white.rounded-lg.shadow-md.p-6
-      h3.text-lg.font-semibold.text-indigo-600.mb-2 Workflows BPMN
-      p.text-gray-600.mb-4 Décrivez des processus métier simplifiés
-      .text-5xl.text-center.py-4 ⚙️
+    //- Mode Apprentissage
+    a(class="group block" href="/cours")
+      div(class="bg-white rounded-xl shadow-lg border-2 border-transparent hover:border-green-500 transition-all hover:shadow-xl" style="padding: 2rem;")
+        .flex.items-center.gap-4.mb-4
+          .text-5xl 📚
+          div
+            h2.text-2xl.font-bold.text-green-600 Cours
+            p.text-gray-500 Mode apprentissage
+        p.text-gray-600.mb-4 Apprenez les standards (Flowchart, UML, BPMN) et explorez le fonctionnement interne du parser.
+        .flex.flex-wrap.gap-2
+          span.bg-green-100.text-green-700.px-3.py-1.rounded-full.text-sm Standards
+          span.bg-green-100.text-green-700.px-3.py-1.rounded-full.text-sm Lexer/Parser
+          span.bg-green-100.text-green-700.px-3.py-1.rounded-full.text-sm Outils debug
+        div(class="mt-4 text-green-600 font-semibold group-hover:translate-x-2 transition-transform")
+          | Voir les cours →
 
-  .bg-white.rounded-lg.shadow-md.p-6.mb-8
-    h2.text-2xl.font-bold.text-gray-800.mb-4 Syntaxe TiboFlux
-    div(class="grid grid-cols-1 md:grid-cols-2 gap-6")
-      div
-        h4.font-semibold.text-gray-700.mb-2 Éléments de base
-        pre.bg-gray-900.text-green-400.p-4.rounded.text-sm.overflow-x-auto
-          | # Déclaration du flux
-          | flow "Mon processus"
-          |
-          | # Nœuds
-          | [Début]           # Terminal (début/fin)
-          | {Action}          # Processus/action
-          | &lt;Décision?&gt;       # Condition
-          | (Entrée/Sortie)   # I/O
-      div
-        h4.font-semibold.text-gray-700.mb-2 Connexions
-        pre.bg-gray-900.text-green-400.p-4.rounded.text-sm.overflow-x-auto
-          | # Flèches
-          | [A] -> [B]              # Simple
-          | [A] -> "label" -> [B]   # Avec étiquette
-          |
-          | # Branches conditionnelles
-          | &lt;Test?&gt;
-          |   | oui -> {Action1}
-          |   | non -> {Action2}
+  //- Aperçu des fonctionnalités
+  div(class="bg-white rounded-xl shadow-lg max-w-4xl mx-auto" style="padding: 2rem;")
+    h3.text-xl.font-bold.text-gray-800.mb-6.text-center Ce que TiboFlux peut faire
 
-  .text-center.flex.justify-center.gap-4
-    a(class="bg-green-600 text-white px-8 py-3 rounded-lg text-lg font-semibold hover:bg-green-700 transition" href="/cours")
-      | Apprendre les standards
-    a(class="bg-indigo-600 text-white px-8 py-3 rounded-lg text-lg font-semibold hover:bg-indigo-700 transition" href="/editor")
-      | Ouvrir l'éditeur
+    div(class="grid grid-cols-1 md:grid-cols-3 gap-6")
+      .text-center
+        .text-4xl.mb-3 📊
+        h4.font-semibold.text-gray-700.mb-2 Flowcharts
+        p.text-gray-500.text-sm Organigrammes avec décisions, boucles et branches conditionnelles
+
+      .text-center
+        .text-4xl.mb-3 📋
+        h4.font-semibold.text-gray-700.mb-2 Tableaux
+        p.text-gray-500.text-sm Tableaux avec en-têtes multiples, colspan et rowspan
+
+      .text-center
+        .text-4xl.mb-3 📤
+        h4.font-semibold.text-gray-700.mb-2 Exports
+        p.text-gray-500.text-sm SVG, PNG, PDF et JSON (AST) pour intégration
+
+    .mt-8.pt-6.border-t.border-gray-200.text-center
+      p.text-gray-500.text-sm
+        | Syntaxe simple :
+        code.bg-gray-100.px-2.py-1.rounded.mx-1 [Début]
+        | →
+        code.bg-gray-100.px-2.py-1.rounded.mx-1 {Action}
+        | →
+        code.bg-gray-100.px-2.py-1.rounded.mx-1 [Fin]

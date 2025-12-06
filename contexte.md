@@ -8,29 +8,25 @@
 
 ### Session 2025-12-06 (dernière) ✅
 
-**Thème** : Tableaux avec colspan/rowspan + Tests TDD
+**Thème** : Refonte UX (séparation Production / Apprentissage)
 
 **Réalisé :**
-- ✅ Tableaux Phase 1 : Syntaxe `table`, rendu SVG
-- ✅ Tableaux Phase 3 : Colspan (`:cN`), Rowspan (`:rN`), en-têtes multiples
-- ✅ Export JSON (AST) depuis l'éditeur
-- ✅ Fix lexer : Unicode (É), tirets (CREAI-ORS), signe +
-- ✅ Fix UX : Dropdown menu hover
-- ✅ Tests TDD : 50 tests passent
-- ✅ Documentation mise à jour
-- ✅ Fichiers publics anonymisés (projet open source)
+- ✅ `/editor` épuré : console masquable (toggle), bouton Parser retiré
+- ✅ `/cours` enrichi : section "Outils debug" avec visualisation tokens + AST
+- ✅ `/` (dashboard) refait : hub de navigation clair avec 2 modes (Production / Apprentissage)
+- ✅ API `/parse` : retourne les tokens si `includeTokens: true`
+- ✅ 50 tests passent
 
 ### Prochaine session - TODO
 
-**Thème suggéré** : Refonte UX (séparation Production / Apprentissage)
+**Thème suggéré** : Tableaux Phase 2 (exports multiples)
 
 **Tâches prévues :**
-- [ ] Épurer `/editor` : masquer ou simplifier la console
-- [ ] Retirer ou déplacer le bouton "Parser" (vers `/cours`)
-- [ ] Enrichir `/cours` : ajouter outils de debug (tokens, AST)
-- [ ] Refaire `/` (dashboard) : hub de navigation clair
+- [ ] Export ASCII art (`┌─┬─┐`)
+- [ ] Export Markdown
+- [ ] Export HTML
 
-**Alternative** : Tableaux Phase 2 (exports ASCII, Markdown, HTML)
+**Alternative** : Coloration syntaxique dans l'éditeur (CodeMirror)
 
 ---
 
@@ -495,5 +491,5 @@ Ce projet est conçu comme un **outil d'apprentissage** pour comprendre :
 ---
 
 **Dernière mise à jour** : 2025-12-06
-**Version** : 1.2.0
-**Status** : MVP fonctionnel - Tableaux avec colspan/rowspan, Export JSON, 41 tests
+**Version** : 1.3.0
+**Status** : MVP fonctionnel - Refonte UX Production/Apprentissage, 50 tests

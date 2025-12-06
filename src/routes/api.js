@@ -2,12 +2,25 @@ const express = require('express');
 const router = express.Router();
 const diagramService = require('../services/diagramService');
 
-// Parse le code TiboFlux et retourne l'AST
+// Parse le code TiboFlux et retourne l'AST (+ tokens si demandé)
 router.post('/parse', (req, res) => {
   try {
-    const { code } = req.body;
+    const { code, includeTokens } = req.body;
     const ast = diagramService.parse(code);
-    res.json({ success: true, ast });
+    const result = { success: true, ast };
+
+    // Ajouter les tokens si demandé (pour debug)
+    if (includeTokens) {
+      const tokens = diagramService.tokenize(code);
+      result.tokens = tokens.map(t => ({
+        type: t.type,
+        value: t.value,
+        line: t.line,
+        column: t.column
+      }));
+    }
+
+    res.json(result);
   } catch (error) {
     res.status(400).json({ success: false, error: error.message });
   }
