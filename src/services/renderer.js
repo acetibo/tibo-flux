@@ -508,6 +508,15 @@ class TableRenderer {
     return 1;
   }
 
+  // Normalise les headers (simple array ou array de lignes)
+  getNormalizedHeaders() {
+    if (!this.ast.headers || this.ast.headers.length === 0) return [];
+    // Si c'est un array de lignes (multi-headers)
+    if (Array.isArray(this.ast.headers[0])) return this.ast.headers;
+    // Sinon c'est un array simple
+    return [this.ast.headers];
+  }
+
   render() {
     // Déléguer au renderer approprié
     if (this.isComplex) {
@@ -662,7 +671,8 @@ class TableRenderer {
     const coveredCells = new Set();
 
     // Rendu des en-têtes (peut avoir plusieurs lignes)
-    this.ast.headers.forEach((headerRow, headerRowIdx) => {
+    const normalizedHeaders = this.getNormalizedHeaders();
+    normalizedHeaders.forEach((headerRow, headerRowIdx) => {
       const y = startY + headerRowIdx * table.cellHeight;
       let colIdx = 0;
       let x = startX;

@@ -27,3 +27,6 @@ tests/debug/img/
 
 # Large binaries
 tools/tailwindcss.exe
+
+# Database
+data/

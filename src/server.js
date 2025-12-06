@@ -6,6 +6,7 @@ const indexRoutes = require('./routes/index');
 const editorRoutes = require('./routes/editor');
 const coursRoutes = require('./routes/cours');
 const apiRoutes = require('./routes/api');
+const documentsRoutes = require('./routes/documents');
 
 const app = express();
 const PORT = process.env.PORT || 3002;
@@ -25,6 +26,7 @@ app.use('/', indexRoutes);
 app.use('/editor', editorRoutes);
 app.use('/cours', coursRoutes);
 app.use('/api', apiRoutes);
+app.use('/api/documents', documentsRoutes);
 
 // Gestion des erreurs 404
 app.use((req, res) => {

@@ -27,10 +27,16 @@ block styles
     #preview-svg {
       max-height: 100%;
       overflow: auto;
+      align-items: flex-start !important;
+      justify-content: flex-start !important;
+      padding: 1rem;
     }
     #preview-svg svg {
       max-width: 100%;
       height: auto;
+    }
+    #preview-svg p {
+      margin: auto;
     }
     #console {
       white-space: pre-wrap;
@@ -38,6 +44,41 @@ block styles
     }
 
 block content
+  //- Barre de gestion des fichiers
+  .mb-4.bg-white.rounded-lg.shadow.p-3.flex.items-center.justify-between.flex-wrap.gap-2
+    .flex.items-center.gap-2
+      //- Nouveau (depuis template)
+      .relative.group
+        button(class="bg-gray-100 text-gray-700 px-3 py-2 rounded hover:bg-gray-200 transition text-sm flex items-center gap-1")
+          span + Nouveau
+          span.text-xs ▾
+        div(class="absolute left-0 top-full pt-1 hidden group-hover:block z-20")
+          #templates-menu(class="bg-white shadow-lg rounded min-w-[200px] max-h-[300px] overflow-auto")
+            .px-3.py-1.text-xs.text-gray-500.bg-gray-50.rounded-t Chargement...
+
+      //- Ouvrir (fichiers existants)
+      .relative.group
+        button(class="bg-gray-100 text-gray-700 px-3 py-2 rounded hover:bg-gray-200 transition text-sm flex items-center gap-1")
+          span Ouvrir
+          span.text-xs ▾
+        div(class="absolute left-0 top-full pt-1 hidden group-hover:block z-20")
+          #documents-menu(class="bg-white shadow-lg rounded min-w-[250px] max-h-[300px] overflow-auto")
+            .px-3.py-2.text-xs.text-gray-500 Chargement...
+
+      //- Sauvegarder
+      button#btn-save(class="bg-blue-600 text-white px-3 py-2 rounded hover:bg-blue-700 transition text-sm")
+        | Sauvegarder
+
+      //- Supprimer
+      button#btn-delete(class="bg-red-100 text-red-600 px-3 py-2 rounded hover:bg-red-200 transition text-sm hidden")
+        | Supprimer
+
+    //- Indicateur fichier courant
+    .flex.items-center.gap-2
+      span#current-file.text-sm.text-gray-500.italic Nouveau document
+      span#file-modified.text-xs.text-orange-500.hidden (non sauvegardé)
+
+  //- Barre principale
   .mb-4.flex.items-center.justify-between
     h1.text-2xl.font-bold.text-gray-800 Éditeur TiboFlux
     .flex.gap-2
@@ -47,11 +88,16 @@ block content
         button#btn-export(class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition")
           | Exporter ▾
         div(class="absolute right-0 top-full pt-1 hidden group-hover:block z-10")
-          div(class="bg-white shadow-lg rounded")
-            button(class="block w-full text-left px-4 py-2 hover:bg-gray-100 rounded-t" data-format="svg") SVG
+          div(class="bg-white shadow-lg rounded min-w-[160px]")
+            .px-3.py-1.text-xs.text-gray-500.bg-gray-50.rounded-t Diagrammes
+            button(class="block w-full text-left px-4 py-2 hover:bg-gray-100" data-format="svg") SVG
             button(class="block w-full text-left px-4 py-2 hover:bg-gray-100" data-format="png") PNG
             button(class="block w-full text-left px-4 py-2 hover:bg-gray-100" data-format="pdf") PDF
-            button(class="block w-full text-left px-4 py-2 hover:bg-gray-100 border-t rounded-b" data-format="json") JSON (AST)
+            button(class="block w-full text-left px-4 py-2 hover:bg-gray-100 border-b" data-format="json") JSON (AST)
+            .px-3.py-1.text-xs.text-gray-500.bg-gray-50 Tableaux (texte)
+            button(class="block w-full text-left px-4 py-2 hover:bg-gray-100" data-table-format="ascii") ASCII art
+            button(class="block w-full text-left px-4 py-2 hover:bg-gray-100" data-table-format="markdown") Markdown
+            button(class="block w-full text-left px-4 py-2 hover:bg-gray-100 rounded-b" data-table-format="html") HTML
 
   .editor-container
     .flex.flex-col
@@ -97,7 +143,223 @@ block scripts
     const consoleHeader = document.getElementById('console-header');
     const consoleIcon = document.getElementById('console-icon');
     const consoleBadge = document.getElementById('console-badge');
+    const templatesMenu = document.getElementById('templates-menu');
+    const documentsMenu = document.getElementById('documents-menu');
+    const currentFileEl = document.getElementById('current-file');
+    const fileModifiedEl = document.getElementById('file-modified');
+    const btnSave = document.getElementById('btn-save');
+    const btnDelete = document.getElementById('btn-delete');
+
     let errorCount = 0;
+    let currentDocument = null; // { id, name, code, type }
+    let originalCode = '';
+
+    // Charger les templates et documents au démarrage
+    loadTemplates();
+    loadDocuments();
+
+    // Détecter les modifications
+    codeEditor.addEventListener('input', () => {
+      if (codeEditor.value !== originalCode) {
+        fileModifiedEl.classList.remove('hidden');
+      } else {
+        fileModifiedEl.classList.add('hidden');
+      }
+    });
+
+    // Charger les templates
+    async function loadTemplates() {
+      try {
+        const response = await fetch('/api/documents/templates');
+        const data = await response.json();
+        if (data.success) {
+          renderTemplatesMenu(data.templates);
+        }
+      } catch (error) {
+        templatesMenu.innerHTML = '<div class="px-3 py-2 text-red-500 text-sm">Erreur chargement</div>';
+      }
+    }
+
+    // Afficher le menu templates
+    function renderTemplatesMenu(templates) {
+      const flowcharts = templates.filter(t => t.type === 'flowchart');
+      const tables = templates.filter(t => t.type === 'table');
+
+      let html = '';
+      if (flowcharts.length) {
+        html += '<div class="px-3 py-1 text-xs text-gray-500 bg-gray-50">Flowcharts</div>';
+        flowcharts.forEach(t => {
+          html += `<button class="block w-full text-left px-4 py-2 hover:bg-gray-100 text-sm" data-template-id="${t.id}">${t.name}</button>`;
+        });
+      }
+      if (tables.length) {
+        html += '<div class="px-3 py-1 text-xs text-gray-500 bg-gray-50 border-t">Tableaux</div>';
+        tables.forEach(t => {
+          html += `<button class="block w-full text-left px-4 py-2 hover:bg-gray-100 text-sm" data-template-id="${t.id}">${t.name}</button>`;
+        });
+      }
+      templatesMenu.innerHTML = html;
+
+      // Event listeners
+      templatesMenu.querySelectorAll('[data-template-id]').forEach(btn => {
+        btn.addEventListener('click', () => loadTemplate(btn.dataset.templateId));
+      });
+    }
+
+    // Charger un template
+    async function loadTemplate(id) {
+      try {
+        const response = await fetch(`/api/documents/${id}`);
+        const data = await response.json();
+        if (data.success) {
+          currentDocument = null;
+          codeEditor.value = data.document.code;
+          originalCode = data.document.code;
+          currentFileEl.textContent = 'Nouveau (depuis ' + data.document.name + ')';
+          fileModifiedEl.classList.add('hidden');
+          btnDelete.classList.add('hidden');
+          log('Template chargé: ' + data.document.name, 'success');
+        }
+      } catch (error) {
+        log('Erreur chargement template: ' + error.message, 'error');
+      }
+    }
+
+    // Charger les documents
+    async function loadDocuments() {
+      try {
+        const response = await fetch('/api/documents');
+        const data = await response.json();
+        if (data.success) {
+          renderDocumentsMenu(data.documents);
+        }
+      } catch (error) {
+        documentsMenu.innerHTML = '<div class="px-3 py-2 text-red-500 text-sm">Erreur chargement</div>';
+      }
+    }
+
+    // Afficher le menu documents
+    function renderDocumentsMenu(documents) {
+      if (documents.length === 0) {
+        documentsMenu.innerHTML = '<div class="px-3 py-2 text-gray-500 text-sm italic">Aucun document sauvegardé</div>';
+        return;
+      }
+
+      let html = '';
+      documents.forEach(doc => {
+        const date = new Date(doc.updated_at).toLocaleDateString('fr-FR');
+        html += `<button class="block w-full text-left px-4 py-2 hover:bg-gray-100 text-sm border-b" data-doc-id="${doc.id}">
+          <div class="font-medium">${doc.name}</div>
+          <div class="text-xs text-gray-400">${doc.type} - ${date}</div>
+        </button>`;
+      });
+      documentsMenu.innerHTML = html;
+
+      // Event listeners
+      documentsMenu.querySelectorAll('[data-doc-id]').forEach(btn => {
+        btn.addEventListener('click', () => loadDocument(btn.dataset.docId));
+      });
+    }
+
+    // Charger un document
+    async function loadDocument(id) {
+      try {
+        const response = await fetch(`/api/documents/${id}`);
+        const data = await response.json();
+        if (data.success) {
+          currentDocument = data.document;
+          codeEditor.value = data.document.code;
+          originalCode = data.document.code;
+          currentFileEl.textContent = data.document.name;
+          fileModifiedEl.classList.add('hidden');
+          btnDelete.classList.remove('hidden');
+          log('Document ouvert: ' + data.document.name, 'success');
+        }
+      } catch (error) {
+        log('Erreur chargement document: ' + error.message, 'error');
+      }
+    }
+
+    // Sauvegarder
+    btnSave.addEventListener('click', async () => {
+      const code = codeEditor.value;
+      if (!code.trim()) {
+        log('Le code ne peut pas être vide', 'error');
+        return;
+      }
+
+      // Demander le nom si nouveau document
+      let name = currentDocument ? currentDocument.name : null;
+      if (!name) {
+        name = prompt('Nom du document :', 'Mon document');
+        if (!name) return;
+      }
+
+      // Détecter le type
+      const type = code.includes('table "') ? 'table' : 'flowchart';
+
+      try {
+        let response;
+        if (currentDocument) {
+          // Update
+          response = await fetch(`/api/documents/${currentDocument.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, code })
+          });
+        } else {
+          // Create
+          response = await fetch('/api/documents', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, code, type })
+          });
+        }
+
+        const data = await response.json();
+        if (data.success) {
+          currentDocument = data.document;
+          originalCode = code;
+          currentFileEl.textContent = data.document.name;
+          fileModifiedEl.classList.add('hidden');
+          btnDelete.classList.remove('hidden');
+          loadDocuments(); // Rafraîchir la liste
+          log('Document sauvegardé: ' + data.document.name, 'success');
+        } else {
+          throw new Error(data.error);
+        }
+      } catch (error) {
+        log('Erreur sauvegarde: ' + error.message, 'error');
+      }
+    });
+
+    // Supprimer
+    btnDelete.addEventListener('click', async () => {
+      if (!currentDocument) return;
+
+      if (!confirm(`Supprimer "${currentDocument.name}" ?`)) return;
+
+      try {
+        const response = await fetch(`/api/documents/${currentDocument.id}`, {
+          method: 'DELETE'
+        });
+        const data = await response.json();
+        if (data.success) {
+          log('Document supprimé: ' + currentDocument.name, 'success');
+          currentDocument = null;
+          codeEditor.value = '';
+          originalCode = '';
+          currentFileEl.textContent = 'Nouveau document';
+          fileModifiedEl.classList.add('hidden');
+          btnDelete.classList.add('hidden');
+          loadDocuments();
+        } else {
+          throw new Error(data.error);
+        }
+      } catch (error) {
+        log('Erreur suppression: ' + error.message, 'error');
+      }
+    });
 
     // Toggle console
     consoleHeader.addEventListener('click', () => {
@@ -198,6 +460,42 @@ block scripts
             if (data.url) {
               window.open(data.url, '_blank');
             }
+            setStatus('Exporté', 'green');
+          } else {
+            throw new Error(data.error);
+          }
+        } catch (error) {
+          log(`Erreur export: ${error.message}`, 'error');
+          setStatus('Erreur', 'red');
+        }
+      });
+    });
+
+    // Export tableaux (ASCII, Markdown, HTML)
+    document.querySelectorAll('[data-table-format]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const format = btn.dataset.tableFormat;
+        try {
+          setStatus(`Export ${format.toUpperCase()}...`, 'yellow');
+
+          const response = await fetch('/api/export-table', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ code: codeEditor.value, format })
+          });
+          const data = await response.json();
+
+          if (data.success) {
+            // Télécharger le fichier texte
+            const extensions = { ascii: 'txt', markdown: 'md', html: 'html' };
+            const blob = new Blob([data.content], { type: data.mimeType });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `table-${Date.now()}.${extensions[format] || 'txt'}`;
+            a.click();
+            URL.revokeObjectURL(url);
+            log(`Export ${format.toUpperCase()} réussi`, 'success');
             setStatus('Exporté', 'green');
           } else {
             throw new Error(data.error);

@@ -48,4 +48,34 @@ router.post('/export', async (req, res) => {
   }
 });
 
+// Exporte un tableau en ASCII, Markdown ou HTML
+router.post('/export-table', (req, res) => {
+  try {
+    const { code, format = 'ascii' } = req.body;
+    const ast = diagramService.parse(code);
+
+    // Vérifier que c'est bien un tableau
+    if (ast.type !== 'Table') {
+      throw new Error('Le code ne contient pas de tableau. Utilisez la syntaxe: table "Titre"');
+    }
+
+    const content = diagramService.exportTable(ast, format);
+    const mimeTypes = {
+      ascii: 'text/plain',
+      markdown: 'text/markdown',
+      md: 'text/markdown',
+      html: 'text/html'
+    };
+
+    res.json({
+      success: true,
+      content,
+      format,
+      mimeType: mimeTypes[format.toLowerCase()] || 'text/plain'
+    });
+  } catch (error) {
+    res.status(400).json({ success: false, error: error.message });
+  }
+});
+
 module.exports = router;

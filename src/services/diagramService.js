@@ -7,6 +7,7 @@ const { tokenize } = require('./lexer');
 const { parse } = require('./parser');
 const { render } = require('./renderer');
 const { exportDiagram } = require('./exporter');
+const { exportTable } = require('./tableExporter');
 
 /**
  * Parse le code TiboFlux et retourne l'AST
@@ -42,5 +43,7 @@ module.exports = {
   // Expose les sous-modules pour debug
   tokenize,
   parseTokens: parse,
-  renderAst: render
+  renderAst: render,
+  // Export tableaux (ASCII, Markdown, HTML)
+  exportTable
 };

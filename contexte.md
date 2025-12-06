@@ -8,25 +8,27 @@
 
 ### Session 2025-12-06 (dernière) ✅
 
-**Thème** : Refonte UX (séparation Production / Apprentissage)
+**Thème** : Tableaux Phase 2 + Persistance SQLite
 
 **Réalisé :**
-- ✅ `/editor` épuré : console masquable (toggle), bouton Parser retiré
-- ✅ `/cours` enrichi : section "Outils debug" avec visualisation tokens + AST
-- ✅ `/` (dashboard) refait : hub de navigation clair avec 2 modes (Production / Apprentissage)
-- ✅ API `/parse` : retourne les tokens si `includeTokens: true`
-- ✅ 50 tests passent
+- ✅ Export tableaux : ASCII art, Markdown, HTML (19 tests)
+- ✅ Persistance SQLite : documents sauvegardés en base
+- ✅ Templates : 6 templates prédéfinis (3 flowcharts, 3 tableaux)
+- ✅ UI éditeur : Nouveau/Ouvrir/Sauvegarder/Supprimer
+- ✅ Fix renderer : normalisation headers pour tableaux simples
+- ✅ Fix CSS : aperçu SVG aligné en haut (plus de troncature)
+- ✅ 69 tests passent
 
 ### Prochaine session - TODO
 
-**Thème suggéré** : Tableaux Phase 2 (exports multiples)
+**Thème suggéré** : Améliorations UX
 
 **Tâches prévues :**
-- [ ] Export ASCII art (`┌─┬─┐`)
-- [ ] Export Markdown
-- [ ] Export HTML
+- [ ] Coloration syntaxique (CodeMirror)
+- [ ] Raccourci clavier Ctrl+S pour sauvegarder
+- [ ] Confirmation avant de quitter si non sauvegardé
 
-**Alternative** : Coloration syntaxique dans l'éditeur (CodeMirror)
+**Alternative** : Swimlanes (Module 5)
 
 ---
 
@@ -491,5 +493,5 @@ Ce projet est conçu comme un **outil d'apprentissage** pour comprendre :
 ---
 
 **Dernière mise à jour** : 2025-12-06
-**Version** : 1.3.0
-**Status** : MVP fonctionnel - Refonte UX Production/Apprentissage, 50 tests
+**Version** : 1.4.0
+**Status** : MVP fonctionnel - Exports tableaux, Persistance SQLite, 69 tests
