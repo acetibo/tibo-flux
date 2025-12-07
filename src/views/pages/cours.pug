@@ -13,6 +13,7 @@ block content
       a(class="bg-purple-100 text-purple-700 px-4 py-2 rounded hover:bg-purple-200 transition" href="#uml") UML Activity
       a(class="bg-amber-100 text-amber-700 px-4 py-2 rounded hover:bg-amber-200 transition" href="#bpmn") BPMN
       a(class="bg-green-100 text-green-700 px-4 py-2 rounded hover:bg-green-200 transition" href="#comparatif") Comparatif
+      a(class="bg-cyan-100 text-cyan-700 px-4 py-2 rounded hover:bg-cyan-200 transition" href="#swimlanes") Swimlanes
       a(class="bg-blue-100 text-blue-700 px-4 py-2 rounded hover:bg-blue-200 transition" href="#tiboflux") TiboFlux
       a(class="bg-gray-700 text-white px-4 py-2 rounded hover:bg-gray-800 transition" href="#debug") Outils debug
 
@@ -218,6 +219,176 @@ block content
       p.text-yellow-800
         strong.text-yellow-900 À venir dans TiboFlux :
         | Les swimlanes seront ajoutés dans le Module 5 du parcours d'apprentissage.
+
+  //- Section Swimlanes (détaillée)
+  #swimlanes.bg-white.rounded-lg.shadow-md.p-6.mb-8
+    .flex.items-center.gap-3.mb-4
+      .text-3xl 🏊
+      h2.text-2xl.font-bold.text-cyan-600 Focus : Les Swimlanes (couloirs de nage)
+
+    p.text-gray-600.mb-4
+      | Les swimlanes (littéralement "couloirs de piscine") sont une technique de visualisation qui montre
+      strong qui fait quoi
+      | dans un processus. Chaque acteur a son propre "couloir" vertical ou horizontal.
+
+    h3.text-lg.font-semibold.text-gray-800.mt-6.mb-3 Pourquoi utiliser les swimlanes ?
+
+    div(class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6")
+      .bg-cyan-50.rounded-lg.p-4
+        h4.font-medium.text-cyan-700.mb-2 Avantages
+        ul.list-none.space-y-2
+          li.flex.items-center.gap-2
+            span.text-green-500 ✓
+            span Clarifie les responsabilités
+          li.flex.items-center.gap-2
+            span.text-green-500 ✓
+            span Identifie les transferts entre acteurs
+          li.flex.items-center.gap-2
+            span.text-green-500 ✓
+            span Détecte les goulots d'étranglement
+          li.flex.items-center.gap-2
+            span.text-green-500 ✓
+            span Facilite la documentation de passation
+
+      .bg-red-50.rounded-lg.p-4
+        h4.font-medium.text-red-700.mb-2 Inconvénients
+        ul.list-none.space-y-2
+          li.flex.items-center.gap-2
+            span.text-red-500 ✗
+            span Plus complexe qu'un flowchart simple
+          li.flex.items-center.gap-2
+            span.text-red-500 ✗
+            span Prend plus de place
+          li.flex.items-center.gap-2
+            span.text-red-500 ✗
+            span Peut devenir illisible avec trop d'acteurs
+
+    h3.text-lg.font-semibold.text-gray-800.mt-6.mb-3 Structure d'un diagramme swimlane
+
+    .bg-gray-100.rounded-lg.p-4.mb-6
+      p.text-gray-700.mb-3
+        | Un diagramme swimlane se compose de :
+      ol.list-decimal.list-inside.space-y-2.text-gray-600
+        li
+          strong.text-gray-800 En-tête :
+          | nom de chaque acteur (personne, service, système)
+        li
+          strong.text-gray-800 Colonnes/lignes :
+          | un couloir par acteur
+        li
+          strong.text-gray-800 Actions :
+          | les étapes du processus, placées dans le couloir de l'acteur responsable
+        li
+          strong.text-gray-800 Flèches :
+          | montrent le flux, notamment les passages d'un acteur à l'autre
+
+    h3.text-lg.font-semibold.text-gray-800.mt-6.mb-3 Exemple concret : Inscription sur un portail
+
+    p.text-gray-600.mb-3
+      | Prenons l'exemple d'un processus d'inscription avec 4 acteurs :
+      strong Utilisateur
+      | ,
+      strong Portail
+      | ,
+      strong Admin
+      | et
+      strong Base de données
+      | .
+
+    .bg-gray-100.rounded-lg.p-4.font-mono.text-sm.overflow-x-auto.mb-4
+      pre.text-gray-700
+        | ┌──────────────┬──────────────┬──────────────┬──────────────┐
+        | │ Utilisateur  │   Portail    │    Admin     │     BDD      │
+        | ├──────────────┼──────────────┼──────────────┼──────────────┤
+        | │              │              │              │              │
+        | │  ●───────────┼──────────────┼──────────────┼──────────────│
+        | │  │           │              │              │              │
+        | │  ▼           │              │              │              │
+        | │ {Remplir     │              │              │              │
+        | │  formulaire} │              │              │              │
+        | │  │           │              │              │              │
+        | │  └───────────┼─▶{Valider    │              │              │
+        | │              │   format}    │              │              │
+        | │              │      │       │              │              │
+        | │              │      └───────┼──────────────┼─▶{Créer      │
+        | │              │              │              │   compte}    │
+        | │              │              │              │      │       │
+        | │              │      ┌───────┼──────────────┼──────┘       │
+        | │              │      ▼       │              │              │
+        | │              │ {Envoyer     │              │              │
+        | │              │  email}      │              │              │
+        | │              │      │       │              │              │
+        | │  ┌───────────┼──────┘       │              │              │
+        | │  ▼           │              │              │              │
+        | │ {Recevoir    │              │              │              │
+        | │  email}      │              │              │              │
+        | │  │           │              │              │              │
+        | │  ▼           │              │              │              │
+        | │  ◉           │              │              │              │
+        | └──────────────┴──────────────┴──────────────┴──────────────┘
+
+    h3.text-lg.font-semibold.text-gray-800.mt-6.mb-3 Cas d'usage typiques
+
+    div(class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6")
+      .bg-white.border.rounded-lg.p-4
+        h4.font-medium.text-gray-700.mb-2 Documentation de passation
+        p.text-sm.text-gray-600 Idéal pour expliquer à un nouveau prestataire comment fonctionne un processus et qui intervient à chaque étape.
+      .bg-white.border.rounded-lg.p-4
+        h4.font-medium.text-gray-700.mb-2 Analyse de processus existant
+        p.text-sm.text-gray-600 Permet de visualiser les allers-retours inutiles entre acteurs et d'optimiser le workflow.
+      .bg-white.border.rounded-lg.p-4
+        h4.font-medium.text-gray-700.mb-2 Formation des nouveaux
+        p.text-sm.text-gray-600 Un nouveau collègue comprend immédiatement son rôle et ses interactions avec les autres acteurs.
+      .bg-white.border.rounded-lg.p-4
+        h4.font-medium.text-gray-700.mb-2 Cahier des charges
+        p.text-sm.text-gray-600 Pour spécifier un système, les swimlanes montrent clairement ce que fait le système vs l'utilisateur.
+
+    h3.text-lg.font-semibold.text-gray-800.mt-6.mb-3 Syntaxe TiboFlux prévue
+
+    .bg-gray-900.rounded-lg.p-4.mb-4
+      pre.text-green-400.text-sm.overflow-x-auto
+        | # Déclaration des acteurs
+        | actors "Utilisateur", "Portail", "Admin", "BDD"
+        |
+        | flow "Inscription"
+        |
+        | [Début]
+        |   @Utilisateur
+        |
+        | [Début] -> {Remplir formulaire}
+        |   @Utilisateur
+        |
+        | {Remplir formulaire} -> {Valider format}
+        |   @Portail
+        |
+        | {Valider format} -> {Créer compte}
+        |   @BDD
+        |
+        | {Créer compte} -> {Envoyer email}
+        |   @Portail
+        |
+        | {Envoyer email} -> {Recevoir email}
+        |   @Utilisateur
+        |
+        | {Recevoir email} -> [Fin]
+        |   @Utilisateur
+
+    .bg-cyan-50.border-l-4.border-cyan-400.p-4.mt-4
+      p.text-cyan-800
+        strong.text-cyan-900 Syntaxe expliquée :
+      ul.list-disc.list-inside.text-sm.text-cyan-700.mt-2.space-y-1
+        li
+          code.bg-cyan-100.px-1.rounded actors "A", "B", "C"
+          | : déclare les acteurs (colonnes)
+        li
+          code.bg-cyan-100.px-1.rounded @NomActeur
+          | : assigne un nœud à un acteur (après la ligne du nœud)
+        li Les nœuds sans @Acteur seront placés automatiquement
+
+    .bg-yellow-50.border-l-4.border-yellow-400.p-4.mt-4
+      p.text-yellow-800
+        strong.text-yellow-900 Statut :
+        | Cette fonctionnalité est en cours de développement. Tu peux l'essayer bientôt !
 
   //- Section BPMN
   #bpmn.bg-white.rounded-lg.shadow-md.p-6.mb-8
