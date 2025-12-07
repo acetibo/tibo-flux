@@ -204,5 +204,29 @@ table "Évolution des données"
       expect(ast.headers).toContain('Résultat');
       expect(ast.rows[0]).toContain('Données été');
     });
+
+    test('parse alignement avec :al, :ac, :ar', () => {
+      const code = `
+table "Budget"
+  | header | Poste | Montant:ar |
+  | Hébergement:al | 500 €:ar |
+  | Maintenance:ac | 1200 €:ar |
+`;
+      const ast = parseCode(code);
+
+      // Headers avec alignement (format complexe : array de lignes)
+      expect(ast.headers[0][0].text).toBe('Poste');
+      expect(ast.headers[0][0].align).toBeNull(); // pas d'alignement explicite
+      expect(ast.headers[0][1].text).toBe('Montant');
+      expect(ast.headers[0][1].align).toBe('right');
+
+      // Données avec alignement
+      expect(ast.rows[0][0].text).toBe('Hébergement');
+      expect(ast.rows[0][0].align).toBe('left');
+      expect(ast.rows[0][1].text).toBe('500 €');
+      expect(ast.rows[0][1].align).toBe('right');
+      expect(ast.rows[1][0].text).toBe('Maintenance');
+      expect(ast.rows[1][0].align).toBe('center');
+    });
   });
 });

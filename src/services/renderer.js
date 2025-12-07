@@ -433,6 +433,36 @@ class TableRenderer {
     return cell.rowspan || 1;
   }
 
+  // Obtient l'alignement d'une cellule (left, center, right)
+  getCellAlign(cell, isHeader = false) {
+    if (cell === null || cell === undefined) return isHeader ? 'center' : 'left';
+    if (typeof cell === 'string') return isHeader ? 'center' : 'left';
+    // Si explicitement défini, utiliser la valeur
+    if (cell.align) return cell.align;
+    // Sinon, défaut : center pour headers, left pour données
+    return isHeader ? 'center' : 'left';
+  }
+
+  // Convertit l'alignement en text-anchor SVG
+  alignToTextAnchor(align) {
+    switch (align) {
+      case 'left': return 'start';
+      case 'right': return 'end';
+      case 'center':
+      default: return 'middle';
+    }
+  }
+
+  // Calcule la position X du texte selon l'alignement
+  getTextX(x, width, align, padding = CONFIG.table.cellPadding) {
+    switch (align) {
+      case 'left': return x + padding;
+      case 'right': return x + width - padding;
+      case 'center':
+      default: return x + width / 2;
+    }
+  }
+
   // Calcule le nombre réel de colonnes (en comptant les colspan)
   calculateNumColumns() {
     let maxCols = 0;
@@ -572,6 +602,9 @@ class TableRenderer {
     let x = startX;
     headers.forEach((header, colIdx) => {
       const width = columnWidths[colIdx];
+      const align = this.getCellAlign(header, true);
+      const textAnchor = this.alignToTextAnchor(align);
+      const textX = this.getTextX(x, width, align);
       svg += `
         <rect
           x="${x}" y="${startY}"
@@ -581,14 +614,14 @@ class TableRenderer {
           stroke-width="1"
         />
         <text
-          x="${x + width / 2}"
+          x="${textX}"
           y="${startY + table.cellHeight / 2 + 5}"
-          text-anchor="middle"
+          text-anchor="${textAnchor}"
           fill="${table.headerText}"
           font-size="${table.headerFontSize}"
           font-weight="bold"
           font-family="Arial, sans-serif"
-        >${this.escapeXml(header)}</text>
+        >${this.escapeXml(typeof header === 'string' ? header : header.text || '')}</text>
       `;
       x += width;
     });
@@ -602,6 +635,10 @@ class TableRenderer {
       row.forEach((cell, colIdx) => {
         const width = columnWidths[colIdx] || table.cellMinWidth;
         const isFirstColumn = colIdx === 0;
+        const cellText = typeof cell === 'string' ? cell : (cell ? cell.text : '');
+        const align = this.getCellAlign(cell, false);
+        const textAnchor = this.alignToTextAnchor(align);
+        const textX = this.getTextX(x, width, align);
 
         svg += `
           <rect
@@ -612,14 +649,14 @@ class TableRenderer {
             stroke-width="1"
           />
           <text
-            x="${x + width / 2}"
+            x="${textX}"
             y="${y + table.cellHeight / 2 + 5}"
-            text-anchor="middle"
+            text-anchor="${textAnchor}"
             fill="${table.cellText}"
             font-size="${table.fontSize}"
             font-weight="${isFirstColumn ? 'bold' : 'normal'}"
             font-family="Arial, sans-serif"
-          >${this.escapeXml(cell || '')}</text>
+          >${this.escapeXml(cellText || '')}</text>
         `;
         x += width;
       });
@@ -676,18 +713,35 @@ class TableRenderer {
       const y = startY + headerRowIdx * table.cellHeight;
       let colIdx = 0;
       let x = startX;
+      let cellIdx = 0;
 
-      headerRow.forEach(cell => {
-        // Sauter les cellules couvertes
-        while (coveredCells.has(`${headerRowIdx},${colIdx}`)) {
-          x += columnWidths[colIdx];
+      while (cellIdx < headerRow.length) {
+        const cell = headerRow[cellIdx];
+        cellIdx++;
+
+        // Vérifier si cette position est couverte par un rowspan précédent
+        if (coveredCells.has(`${headerRowIdx},${colIdx}`)) {
+          // Position couverte - avancer x mais ne pas dessiner
+          x += columnWidths[colIdx] || table.cellMinWidth;
           colIdx++;
+          continue;
         }
 
         if (cell === null) {
-          // Cellule vide (couverte par un rowspan)
+          // Cellule vide intentionnelle (le "-" du code) - dessiner un rectangle vide
+          const cellWidth = columnWidths[colIdx] || table.cellMinWidth;
+          svg += `
+            <rect
+              x="${x}" y="${y}"
+              width="${cellWidth}" height="${table.cellHeight}"
+              fill="${table.headerFill}"
+              stroke="${table.borderColor}"
+              stroke-width="1"
+            />
+          `;
+          x += cellWidth;
           colIdx++;
-          return;
+          continue;
         }
 
         const text = this.getCellText(cell);
@@ -712,6 +766,11 @@ class TableRenderer {
           }
         }
 
+        // Alignement
+        const align = this.getCellAlign(cell, true);
+        const textAnchor = this.alignToTextAnchor(align);
+        const textX = this.getTextX(x, cellWidth, align);
+
         // Dessiner la cellule
         svg += `
           <rect
@@ -722,9 +781,9 @@ class TableRenderer {
             stroke-width="1"
           />
           <text
-            x="${x + cellWidth / 2}"
+            x="${textX}"
             y="${y + cellHeight / 2 + 5}"
-            text-anchor="middle"
+            text-anchor="${textAnchor}"
             fill="${table.headerText}"
             font-size="${table.headerFontSize}"
             font-weight="bold"
@@ -734,7 +793,7 @@ class TableRenderer {
 
         x += cellWidth;
         colIdx += colspan;
-      });
+      }
     });
 
     // Rendu des lignes de données
@@ -745,17 +804,37 @@ class TableRenderer {
 
       let colIdx = 0;
       let x = startX;
+      let cellIdx = 0; // Index dans le tableau de cellules de l'AST
 
-      row.forEach(cell => {
-        // Sauter les cellules couvertes
-        while (coveredCells.has(`${rowIdx},${colIdx}`)) {
-          x += columnWidths[colIdx];
+      // Itérer sur les positions de colonnes
+      while (cellIdx < row.length) {
+        const cell = row[cellIdx];
+        cellIdx++;
+
+        // Vérifier si cette position est couverte par un rowspan précédent
+        if (coveredCells.has(`${rowIdx},${colIdx}`)) {
+          // Position couverte - avancer x (l'espace est occupé) mais ne pas dessiner
+          x += columnWidths[colIdx] || table.cellMinWidth;
           colIdx++;
+          continue;
         }
 
         if (cell === null) {
+          // Cellule vide intentionnelle (le "-" du code, pas couverte par rowspan)
+          // Dessiner un rectangle vide
+          const cellWidth = columnWidths[colIdx] || table.cellMinWidth;
+          svg += `
+            <rect
+              x="${x}" y="${y}"
+              width="${cellWidth}" height="${table.cellHeight}"
+              fill="${fillColor}"
+              stroke="${table.borderColor}"
+              stroke-width="1"
+            />
+          `;
+          x += cellWidth;
           colIdx++;
-          return;
+          continue;
         }
 
         const text = this.getCellText(cell);
@@ -770,7 +849,7 @@ class TableRenderer {
 
         const cellHeight = rowspan * table.cellHeight;
 
-        // Marquer les cellules couvertes
+        // Marquer les cellules couvertes pour les lignes suivantes
         for (let r = 0; r < rowspan; r++) {
           for (let c = 0; c < colspan; c++) {
             if (r > 0 || c > 0) {
@@ -778,6 +857,11 @@ class TableRenderer {
             }
           }
         }
+
+        // Alignement
+        const align = this.getCellAlign(cell, false);
+        const textAnchor = this.alignToTextAnchor(align);
+        const textX = this.getTextX(x, cellWidth, align);
 
         svg += `
           <rect
@@ -788,9 +872,9 @@ class TableRenderer {
             stroke-width="1"
           />
           <text
-            x="${x + cellWidth / 2}"
+            x="${textX}"
             y="${y + cellHeight / 2 + 5}"
-            text-anchor="middle"
+            text-anchor="${textAnchor}"
             fill="${table.cellText}"
             font-size="${table.fontSize}"
             font-weight="${isFirstColumn ? 'bold' : 'normal'}"
@@ -800,7 +884,7 @@ class TableRenderer {
 
         x += cellWidth;
         colIdx += colspan;
-      });
+      }
     });
 
     svg += '</svg>';

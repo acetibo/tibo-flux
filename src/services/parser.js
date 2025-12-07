@@ -142,17 +142,31 @@ class Parser {
     return result ? result.last : null;
   }
 
-  // Parse le contenu d'une cellule et extrait les modificateurs :rN, :cN
+  // Parse le contenu d'une cellule et extrait les modificateurs :rN, :cN, :al, :ac, :ar
   parseCellContent(text) {
-    const cell = { text: text.trim(), colspan: 1, rowspan: 1 };
+    const cell = { text: text.trim(), colspan: 1, rowspan: 1, align: null };
 
-    // Cherche les modificateurs :rN (rowspan) et :cN (colspan)
-    const modifierRegex = /:([rc])(\d+)/g;
+    // Cherche les modificateurs :rN (rowspan), :cN (colspan), :al/:ac/:ar (alignement)
+    const modifierRegex = /:([rca])(\d+|[lcr])?/g;
     let match;
     const modifiers = [];
 
     while ((match = modifierRegex.exec(text)) !== null) {
-      modifiers.push({ type: match[1], value: parseInt(match[2], 10), full: match[0] });
+      const type = match[1];
+      const value = match[2];
+
+      // Alignement : :al, :ac, :ar (le "a" suivi de l, c, ou r)
+      if (type === 'a' && value && ['l', 'c', 'r'].includes(value)) {
+        modifiers.push({ type: 'align', value: value, full: match[0] });
+      }
+      // Rowspan : :rN
+      else if (type === 'r' && value && /^\d+$/.test(value)) {
+        modifiers.push({ type: 'r', value: parseInt(value, 10), full: match[0] });
+      }
+      // Colspan : :cN
+      else if (type === 'c' && value && /^\d+$/.test(value)) {
+        modifiers.push({ type: 'c', value: parseInt(value, 10), full: match[0] });
+      }
     }
 
     // Applique les modificateurs et nettoie le texte
@@ -161,6 +175,9 @@ class Parser {
         cell.rowspan = mod.value;
       } else if (mod.type === 'c') {
         cell.colspan = mod.value;
+      } else if (mod.type === 'align') {
+        // l = left, c = center, r = right
+        cell.align = mod.value === 'l' ? 'left' : mod.value === 'c' ? 'center' : 'right';
       }
       cell.text = cell.text.replace(mod.full, '').trim();
     });
@@ -266,9 +283,9 @@ class Parser {
     // Consomme les DEDENT restants
     while (this.match(TokenType.DEDENT)) {}
 
-    // Rétrocompatibilité : convertir headerRows en format simple si pas de colspan/rowspan
+    // Rétrocompatibilité : convertir headerRows en format simple si pas de colspan/rowspan/align
     const hasComplexHeaders = headerRows.some(row =>
-      row.some(cell => cell && (cell.colspan > 1 || cell.rowspan > 1))
+      row.some(cell => cell && (cell.colspan > 1 || cell.rowspan > 1 || cell.align))
     );
 
     // Format headers pour rétrocompatibilité
@@ -285,7 +302,7 @@ class Parser {
 
     // Convertir rows en format simple si pas de modificateurs
     const hasComplexRows = rows.some(row =>
-      row.some(cell => cell && (cell.colspan > 1 || cell.rowspan > 1))
+      row.some(cell => cell && (cell.colspan > 1 || cell.rowspan > 1 || cell.align))
     );
 
     const formattedRows = hasComplexRows || hasComplexHeaders

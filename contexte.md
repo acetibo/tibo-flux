@@ -4,26 +4,38 @@
 
 ---
 
+## Rappels pour la prochaine session
+
+> **À lire EN PREMIER au démarrage et à afficher à l'utilisateur**
+
+- [x] ~~Parler du fichier `exercices/cas-reels.md` (Cas Passation Sport Santé)~~
+
+---
+
 ## Historique des Sessions
 
 ### Session 2025-12-07 (dernière) ✅
 
-**Thème** : Améliorations UX - CodeMirror + Modales
+**Thème** : Améliorations UX - Onglets, Aide syntaxe, Confirmation sauvegarde
 
 **Réalisé :**
+- ✅ Onglets Code/Contexte dans l'éditeur
+  - Permet d'associer un contexte métier à chaque document
+  - Champ `context` ajouté en base de données SQLite
+- ✅ Modale Aide syntaxe (bouton "? Aide syntaxe")
+  - Documentation complète : flowcharts + tableaux
+  - Modificateurs :c2, :r2, :al, :ac, :ar
+- ✅ Confirmation avant écrasement lors de la sauvegarde
+  - Si document modifié : choix écraser / créer copie
+  - Possibilité de renommer la copie
+- ✅ Fix lexer : caractères Unicode (É majuscule), tirets, signe +
+- ✅ Fix alignements tableaux (modificateurs :al, :ac, :ar)
+- ✅ 70 tests passent
+
+**Session précédente (matin)** :
 - ✅ Coloration syntaxique (CodeMirror) avec mode custom TiboFlux
-  - Keywords (flow, table, header) en violet
-  - Nœuds colorés par type ([terminal], {process}, <decision>, (io))
-  - Flèches, pipes, strings, commentaires stylisés
 - ✅ Raccourci Ctrl+S pour sauvegarder
-- ✅ Confirmation avant de quitter si non sauvegardé (beforeunload)
-- ✅ Modales : remplacement des menus dropdown par des modales
-  - Modale "Nouveau" (templates)
-  - Modale "Ouvrir" (documents sauvegardés)
-  - Modale "Exporter" (tous les formats)
-- ✅ Fix styles boutons (inline styles pour compatibilité CSS)
-- ✅ Options d'export grisées selon le type de contenu
-- ✅ 69 tests passent
+- ✅ Modales : Nouveau, Ouvrir, Exporter
 
 ### Session 2025-12-06 ✅
 
@@ -39,16 +51,15 @@
 
 ### Prochaine session - TODO
 
-**Thème suggéré** : Export ASCII art Flowcharts
+**Thème suggéré** : Tableaux cas réels ARS
 
 **Tâches prévues :**
-- [ ] Export ASCII art pour flowcharts (comme pour les tableaux)
-  - Calcul des largeurs de colonnes
-  - Connexions (`│`, `─`, coins `┌┐└┘`)
-  - Branchements (décisions avec 2+ sorties)
-  - Fusion des branches
+- [ ] Créer les 2 tableaux pour le cas Passation Sport Santé :
+  1. "Ce que comprend le portail" (glossaire)
+  2. "Les scénarios possibles" (comparatif A/B1/B2)
+- [ ] Tester et valider le rendu SVG des tableaux
 
-**Alternative** : Swimlanes (Module 5)
+**Alternative** : Export ASCII art pour flowcharts ou Swimlanes (Module 5)
 
 ---
 
@@ -513,5 +524,5 @@ Ce projet est conçu comme un **outil d'apprentissage** pour comprendre :
 ---
 
 **Dernière mise à jour** : 2025-12-07
-**Version** : 1.5.0
-**Status** : MVP fonctionnel - CodeMirror, Modales, 69 tests
+**Version** : 1.6.0
+**Status** : MVP fonctionnel - Onglets, Aide syntaxe, Confirmation save, 70 tests

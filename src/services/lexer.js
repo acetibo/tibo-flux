@@ -53,6 +53,7 @@ class Lexer {
     this.column = 1;
     this.tokens = [];
     this.indentStack = [0];
+    this.inTableMode = false; // Mode tableau : après "table" jusqu'à la prochaine ligne vide ou nouveau bloc
   }
 
   peek(offset = 0) {
@@ -131,6 +132,22 @@ class Lexer {
     this.tokens.push(new Token(tokenType, value.trim(), startLine, startColumn));
   }
 
+  // Scanne le contenu d'une cellule de tableau (tout jusqu'au prochain | ou fin de ligne)
+  scanTableCell() {
+    const startColumn = this.column;
+    let value = '';
+
+    while (!this.isAtEnd() && this.peek() !== '|' && this.peek() !== '\n') {
+      value += this.advance();
+    }
+
+    value = value.trim();
+
+    if (value) {
+      this.tokens.push(new Token(TokenType.IDENTIFIER, value, this.line, startColumn));
+    }
+  }
+
   scanIdentifier() {
     const startColumn = this.column;
     let value = '';
@@ -160,8 +177,10 @@ class Lexer {
 
     // Mots-clés
     if (value.toLowerCase() === 'flow') {
+      this.inTableMode = false; // Désactive le mode tableau
       this.tokens.push(new Token(TokenType.FLOW, value, this.line, startColumn));
     } else if (value.toLowerCase() === 'table') {
+      this.inTableMode = true; // Active le mode tableau
       this.tokens.push(new Token(TokenType.TABLE, value, this.line, startColumn));
     } else if (value) {
       this.tokens.push(new Token(TokenType.IDENTIFIER, value, this.line, startColumn));
@@ -276,10 +295,18 @@ class Lexer {
         // Si ce n'est pas une flèche, on laisse tomber pour qu'il soit traité comme partie d'un identifiant
       }
 
-      // Pipe pour les branches
+      // Pipe pour les branches ou cellules de tableau
       if (char === '|') {
         this.addToken(TokenType.PIPE, '|');
         this.advance();
+
+        // En mode tableau, scanner la cellule suivante
+        if (this.inTableMode) {
+          this.skipWhitespace();
+          if (this.peek() !== '|' && this.peek() !== '\n' && !this.isAtEnd()) {
+            this.scanTableCell();
+          }
+        }
         continue;
       }
 

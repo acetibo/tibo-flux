@@ -31,12 +31,20 @@ function init() {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL,
       code TEXT NOT NULL,
+      context TEXT DEFAULT '',
       type TEXT DEFAULT 'flowchart',
       is_template INTEGER DEFAULT 0,
       created_at TEXT DEFAULT (datetime('now')),
       updated_at TEXT DEFAULT (datetime('now'))
     )
   `);
+
+  // Migration : ajouter la colonne context si elle n'existe pas
+  try {
+    db.exec(`ALTER TABLE documents ADD COLUMN context TEXT DEFAULT ''`);
+  } catch (e) {
+    // La colonne existe déjà, ignorer
+  }
 
   // Insérer les templates par défaut s'ils n'existent pas
   const templateCount = db.prepare('SELECT COUNT(*) as count FROM documents WHERE is_template = 1').get();
@@ -169,25 +177,25 @@ function getDocument(id) {
 /**
  * Crée un nouveau document
  */
-function createDocument(name, code, type = 'flowchart') {
+function createDocument(name, code, type = 'flowchart', context = '') {
   init();
   const result = db.prepare(`
-    INSERT INTO documents (name, code, type)
-    VALUES (?, ?, ?)
-  `).run(name, code, type);
+    INSERT INTO documents (name, code, type, context)
+    VALUES (?, ?, ?, ?)
+  `).run(name, code, type, context);
   return getDocument(result.lastInsertRowid);
 }
 
 /**
  * Met à jour un document
  */
-function updateDocument(id, name, code) {
+function updateDocument(id, name, code, context = '') {
   init();
   db.prepare(`
     UPDATE documents
-    SET name = ?, code = ?, updated_at = datetime('now')
+    SET name = ?, code = ?, context = ?, updated_at = datetime('now')
     WHERE id = ? AND is_template = 0
-  `).run(name, code, id);
+  `).run(name, code, context, id);
   return getDocument(id);
 }
 

@@ -97,8 +97,16 @@ block content
 
   .editor-container
     .flex.flex-col
-      .bg-gray-800.text-gray-300.px-3.py-1.text-sm.rounded-t
-        | Code TiboFlux
+      //- Onglets éditeur
+      .flex.bg-gray-700.rounded-t
+        button#tab-code.px-4.py-2.text-sm.font-medium.rounded-tl.transition(class="bg-gray-800 text-white")
+          | Code TiboFlux
+        button#tab-context.px-4.py-2.text-sm.font-medium.transition(class="bg-gray-600 text-gray-300 hover:bg-gray-700")
+          | Contexte
+        //- Bouton aide syntaxe
+        button#btn-help.ml-auto.px-3.py-1.text-xs.mr-2.my-1.rounded.transition(class="bg-gray-600 text-gray-300 hover:bg-gray-500")
+          | ? Aide syntaxe
+      //- Panneau Code
       #code-editor-wrapper.flex-1.bg-gray-900
         textarea#code-editor.hidden
           | # Exemple de diagramme
@@ -111,6 +119,9 @@ block content
           | <Disponible?>
           |   | oui -> {Traiter paiement} -> {Expédier} -> [Fin]
           |   | non -> {Notifier client} -> [Fin]
+      //- Panneau Contexte (caché par défaut)
+      #panel-context.flex-1.bg-gray-900.p-4.hidden
+        textarea#context-editor.w-full.h-full.p-3.rounded.resize-none.text-sm(style="background:#1e1e1e;color:#e0e0e0;border:1px solid #333" placeholder="Décrivez le contexte de ce diagramme : objectif, destinataires, remarques...")
 
     .flex.flex-col
       .bg-gray-200.px-3.py-1.text-sm.rounded-t.flex.justify-between.items-center
@@ -177,6 +188,90 @@ block content
             button.export-table-btn.text-left.p-3.border.rounded-lg(data-table-format="html" style="transition:all 0.2s")
               .font-medium.text-gray-800 HTML
               .text-xs.text-gray-500 Page web autonome
+
+  //- Modale Aide Syntaxe
+  #modal-help.hidden(style="position:fixed;top:0;left:0;right:0;bottom:0;z-index:9999")
+    div(style="position:absolute;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5)" onclick="closeModal('help')")
+    div(style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:white;border-radius:0.5rem;width:100%;max-width:40rem;max-height:85vh;overflow:hidden;box-shadow:0 25px 50px -12px rgba(0,0,0,0.25)")
+      .flex.items-center.justify-between.px-6.py-4.border-b
+        h2.text-xl.font-bold.text-gray-800 Aide Syntaxe TiboFlux
+        button.text-gray-400.text-2xl.cursor-pointer(onclick="closeModal('help')" style="line-height:1") &times;
+      .p-6(style="overflow:auto;max-height:70vh")
+        //- Flowcharts
+        .mb-6
+          h3.text-lg.font-semibold.text-indigo-600.mb-3 Flowcharts
+          .bg-gray-50.rounded-lg.p-4.text-sm
+            .grid.grid-cols-2.gap-4
+              div
+                .font-medium.text-gray-700.mb-1 Mots-clés
+                code.bg-gray-200.px-2.py-1.rounded.text-xs flow "Titre"
+              div
+                .font-medium.text-gray-700.mb-1 Connexion
+                code.bg-gray-200.px-2.py-1.rounded.text-xs ->
+            .mt-4
+              .font-medium.text-gray-700.mb-2 Types de noeuds
+              .grid.grid-cols-2.gap-2
+                .flex.items-center.gap-2
+                  code.bg-blue-100.text-blue-800.px-2.py-1.rounded.text-xs [Texte]
+                  span.text-gray-600.text-xs Terminal (debut/fin)
+                .flex.items-center.gap-2
+                  code.bg-green-100.text-green-800.px-2.py-1.rounded.text-xs {Texte}
+                  span.text-gray-600.text-xs Processus
+                .flex.items-center.gap-2
+                  code.bg-yellow-100.text-yellow-800.px-2.py-1.rounded.text-xs <Texte?>
+                  span.text-gray-600.text-xs Decision
+                .flex.items-center.gap-2
+                  code.bg-purple-100.text-purple-800.px-2.py-1.rounded.text-xs (Texte)
+                  span.text-gray-600.text-xs Entree/Sortie
+            .mt-4
+              .font-medium.text-gray-700.mb-2 Branches conditionnelles
+              pre.bg-gray-200.p-2.rounded.text-xs.overflow-x-auto
+                | &lt;Question?&gt;
+                |   | oui -> {Action1}
+                |   | non -> {Action2}
+        //- Tableaux
+        .mb-6
+          h3.text-lg.font-semibold.text-indigo-600.mb-3 Tableaux
+          .bg-gray-50.rounded-lg.p-4.text-sm
+            .mb-3
+              .font-medium.text-gray-700.mb-1 Structure de base
+              pre.bg-gray-200.p-2.rounded.text-xs.overflow-x-auto
+                | table "Titre"
+                |   | header | Col1 | Col2 |
+                |   | Ligne1 | A | B |
+            .mb-3
+              .font-medium.text-gray-700.mb-2 Modificateurs de cellules
+              .grid.grid-cols-2.gap-2
+                .flex.items-center.gap-2
+                  code.bg-red-100.text-red-800.px-2.py-1.rounded.text-xs :c2
+                  span.text-gray-600.text-xs Colspan (2 colonnes)
+                .flex.items-center.gap-2
+                  code.bg-red-100.text-red-800.px-2.py-1.rounded.text-xs :r3
+                  span.text-gray-600.text-xs Rowspan (3 lignes)
+                .flex.items-center.gap-2
+                  code.bg-orange-100.text-orange-800.px-2.py-1.rounded.text-xs :al
+                  span.text-gray-600.text-xs Aligner a gauche
+                .flex.items-center.gap-2
+                  code.bg-orange-100.text-orange-800.px-2.py-1.rounded.text-xs :ac
+                  span.text-gray-600.text-xs Aligner au centre
+                .flex.items-center.gap-2
+                  code.bg-orange-100.text-orange-800.px-2.py-1.rounded.text-xs :ar
+                  span.text-gray-600.text-xs Aligner a droite
+                .flex.items-center.gap-2
+                  code.bg-gray-300.text-gray-700.px-2.py-1.rounded.text-xs -
+                  span.text-gray-600.text-xs Cellule couverte
+            .mt-3
+              .font-medium.text-gray-700.mb-2 Exemple complet
+              pre.bg-gray-200.p-2.rounded.text-xs.overflow-x-auto
+                | table "Budget"
+                |   | header | Poste | Montant:ar |
+                |   | Hebergement:al | 500 EUR:ar |
+                |   | Total:c2 |
+        //- Commentaires
+        div
+          h3.text-lg.font-semibold.text-indigo-600.mb-3 Commentaires
+          .bg-gray-50.rounded-lg.p-4.text-sm
+            code.bg-gray-200.px-2.py-1.rounded.text-xs # Ceci est un commentaire
 
   .mt-4.bg-white.rounded-lg.shadow
     .flex.items-center.justify-between.px-4.py-2.cursor-pointer#console-header
@@ -284,16 +379,57 @@ block scripts
     const modalNew = document.getElementById('modal-new');
     const modalOpen = document.getElementById('modal-open');
     const modalExport = document.getElementById('modal-export');
+    const modalHelp = document.getElementById('modal-help');
     const templatesContent = document.getElementById('templates-content');
     const documentsContent = document.getElementById('documents-content');
+    const tabCode = document.getElementById('tab-code');
+    const tabContext = document.getElementById('tab-context');
+    const panelCode = document.getElementById('code-editor-wrapper');
+    const panelContext = document.getElementById('panel-context');
+    const contextEditor = document.getElementById('context-editor');
+    const btnHelp = document.getElementById('btn-help');
 
     let errorCount = 0;
-    let currentDocument = null; // { id, name, code, type }
+    let currentDocument = null; // { id, name, code, type, context }
     let originalCode = '';
+    let originalContext = '';
+
+    // === Gestion des onglets Code/Contexte ===
+    function switchTab(tab) {
+      if (tab === 'code') {
+        tabCode.classList.remove('bg-gray-600', 'text-gray-300');
+        tabCode.classList.add('bg-gray-800', 'text-white');
+        tabContext.classList.remove('bg-gray-800', 'text-white');
+        tabContext.classList.add('bg-gray-600', 'text-gray-300');
+        panelCode.classList.remove('hidden');
+        panelContext.classList.add('hidden');
+        editor.refresh(); // Refresh CodeMirror après affichage
+      } else {
+        tabContext.classList.remove('bg-gray-600', 'text-gray-300');
+        tabContext.classList.add('bg-gray-800', 'text-white');
+        tabCode.classList.remove('bg-gray-800', 'text-white');
+        tabCode.classList.add('bg-gray-600', 'text-gray-300');
+        panelContext.classList.remove('hidden');
+        panelCode.classList.add('hidden');
+      }
+    }
+
+    tabCode.addEventListener('click', () => switchTab('code'));
+    tabContext.addEventListener('click', () => switchTab('context'));
+    btnHelp.addEventListener('click', () => openModal('help'));
+
+    // Détecter les modifications du contexte
+    contextEditor.addEventListener('input', () => {
+      if (contextEditor.value !== originalContext) {
+        fileModifiedEl.classList.remove('hidden');
+      } else if (editor.getValue() === originalCode) {
+        fileModifiedEl.classList.add('hidden');
+      }
+    });
 
     // === Gestion des modales ===
     function openModal(type) {
-      const modals = { new: modalNew, open: modalOpen, export: modalExport };
+      const modals = { new: modalNew, open: modalOpen, export: modalExport, help: modalHelp };
       const modal = modals[type];
       if (modal) {
         modal.classList.remove('hidden');
@@ -338,7 +474,7 @@ block scripts
     }
 
     function closeModal(type) {
-      const modals = { new: modalNew, open: modalOpen, export: modalExport };
+      const modals = { new: modalNew, open: modalOpen, export: modalExport, help: modalHelp };
       const modal = modals[type];
       if (modal) {
         modal.classList.add('hidden');
@@ -352,6 +488,7 @@ block scripts
         closeModal('new');
         closeModal('open');
         closeModal('export');
+        closeModal('help');
       }
     });
 
@@ -459,9 +596,12 @@ block scripts
           currentDocument = null;
           codeEditor.value = data.document.code;
           originalCode = data.document.code;
+          contextEditor.value = '';
+          originalContext = '';
           currentFileEl.textContent = 'Nouveau (depuis ' + data.document.name + ')';
           fileModifiedEl.classList.add('hidden');
           btnDelete.classList.add('hidden');
+          switchTab('code');
           log('Template chargé: ' + data.document.name, 'success');
         }
       } catch (error) {
@@ -523,9 +663,12 @@ block scripts
           currentDocument = data.document;
           codeEditor.value = data.document.code;
           originalCode = data.document.code;
+          contextEditor.value = data.document.context || '';
+          originalContext = data.document.context || '';
           currentFileEl.textContent = data.document.name;
           fileModifiedEl.classList.add('hidden');
           btnDelete.classList.remove('hidden');
+          switchTab('code');
           log('Document ouvert: ' + data.document.name, 'success');
         }
       } catch (error) {
@@ -536,36 +679,65 @@ block scripts
     // Sauvegarder
     btnSave.addEventListener('click', async () => {
       const code = codeEditor.value;
+      const context = contextEditor.value;
       if (!code.trim()) {
         log('Le code ne peut pas être vide', 'error');
         return;
       }
 
-      // Demander le nom si nouveau document
-      let name = currentDocument ? currentDocument.name : null;
-      if (!name) {
-        name = prompt('Nom du document :', 'Mon document');
-        if (!name) return;
-      }
-
       // Détecter le type
       const type = code.includes('table "') ? 'table' : 'flowchart';
+      let name, shouldUpdate = false;
+
+      if (currentDocument) {
+        // Document existant - vérifier si modifié
+        const hasChanges = code !== originalCode || context !== originalContext;
+
+        if (hasChanges) {
+          // Demander : écraser ou copie ?
+          const choice = confirm(
+            `Le document "${currentDocument.name}" a été modifié.\n\n` +
+            `OK = Écraser la version existante\n` +
+            `Annuler = Créer une copie (vous pourrez renommer)`
+          );
+
+          if (choice) {
+            // Écraser
+            name = currentDocument.name;
+            shouldUpdate = true;
+          } else {
+            // Créer une copie - demander le nouveau nom
+            name = prompt('Nom de la copie :', currentDocument.name + ' (copie)');
+            if (!name) return;
+            shouldUpdate = false;
+          }
+        } else {
+          // Pas de changement, sauvegarder directement
+          name = currentDocument.name;
+          shouldUpdate = true;
+        }
+      } else {
+        // Nouveau document
+        name = prompt('Nom du document :', 'Mon document');
+        if (!name) return;
+        shouldUpdate = false;
+      }
 
       try {
         let response;
-        if (currentDocument) {
+        if (shouldUpdate && currentDocument) {
           // Update
           response = await fetch(`/api/documents/${currentDocument.id}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name, code })
+            body: JSON.stringify({ name, code, context })
           });
         } else {
           // Create
           response = await fetch('/api/documents', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name, code, type })
+            body: JSON.stringify({ name, code, type, context })
           });
         }
 
@@ -573,6 +745,7 @@ block scripts
         if (data.success) {
           currentDocument = data.document;
           originalCode = code;
+          originalContext = context;
           currentFileEl.textContent = data.document.name;
           fileModifiedEl.classList.add('hidden');
           btnDelete.classList.remove('hidden');
@@ -602,9 +775,12 @@ block scripts
           currentDocument = null;
           codeEditor.value = '';
           originalCode = '';
+          contextEditor.value = '';
+          originalContext = '';
           currentFileEl.textContent = 'Nouveau document';
           fileModifiedEl.classList.add('hidden');
           btnDelete.classList.add('hidden');
+          switchTab('code');
           loadDocuments();
         } else {
           throw new Error(data.error);
@@ -775,7 +951,7 @@ block scripts
 
     // Confirmation avant de quitter si modifications non sauvegardées
     window.addEventListener('beforeunload', (e) => {
-      if (editor.getValue() !== originalCode) {
+      if (editor.getValue() !== originalCode || contextEditor.value !== originalContext) {
         e.preventDefault();
         e.returnValue = '';
       }

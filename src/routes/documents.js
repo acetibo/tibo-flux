@@ -43,11 +43,11 @@ router.get('/:id', (req, res) => {
 // POST /api/documents - Crée un nouveau document
 router.post('/', (req, res) => {
   try {
-    const { name, code, type } = req.body;
+    const { name, code, type, context } = req.body;
     if (!name || !code) {
       return res.status(400).json({ success: false, error: 'Nom et code requis' });
     }
-    const document = db.createDocument(name, code, type || 'flowchart');
+    const document = db.createDocument(name, code, type || 'flowchart', context || '');
     res.status(201).json({ success: true, document });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
@@ -57,11 +57,11 @@ router.post('/', (req, res) => {
 // PUT /api/documents/:id - Met à jour un document
 router.put('/:id', (req, res) => {
   try {
-    const { name, code } = req.body;
+    const { name, code, context } = req.body;
     if (!name || !code) {
       return res.status(400).json({ success: false, error: 'Nom et code requis' });
     }
-    const document = db.updateDocument(req.params.id, name, code);
+    const document = db.updateDocument(req.params.id, name, code, context || '');
     if (!document) {
       return res.status(404).json({ success: false, error: 'Document non trouvé' });
     }
