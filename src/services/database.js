@@ -122,6 +122,31 @@ Prestataire: {Reprend application seule} -> Prestataire: [Fin scenario B2]`;
     `).run(passationCode);
   }
 
+  // Migration : ajouter les tableaux Sport Santé s'ils n'existent pas
+  const glossaireTemplate = db.prepare(`
+    SELECT COUNT(*) as count FROM documents
+    WHERE is_template = 1 AND name LIKE '%Glossaire Portail%'
+  `).get();
+  if (glossaireTemplate.count === 0) {
+    db.prepare(`
+      INSERT INTO documents (name, code, type, is_template)
+      VALUES (?, ?, ?, 1)
+    `).run(
+      'Tableau - Glossaire Portail Sport Santé',
+      `# Ce que comprend "le portail" - Glossaire pour l'ARS
+table "Ce que comprend le portail Sport Sante"
+  | header | # | Element | Ce que ca veut dire |
+  | 1 | Le portail lui-meme | Le site internet visible par les utilisateurs |
+  | 2 | Les donnees | Toutes les informations enregistrees (offres, professionnels, etc.) |
+  | 3 | L'hebergement | L'espace ou le portail "vit" sur internet |
+  | 4 | L'adresse internet | Le nom du portail (occitanie-sport-sante.fr) |
+  | 5 | L'assistance utilisateurs | Repondre aux questions des utilisateurs |
+  | 6 | Les corrections | Reparer les problemes quand il y en a |
+  | 7 | Les ameliorations | Ajouter de nouvelles fonctionnalites |`,
+      'table'
+    );
+  }
+
   // Insérer les templates par défaut s'ils n'existent pas
   const templateCount = db.prepare('SELECT COUNT(*) as count FROM documents WHERE is_template = 1').get();
   if (templateCount.count === 0) {
@@ -256,6 +281,20 @@ CREAI ORS: {Gere domaine} -> Prestataire: {Reprend application}
 CREAI ORS: {Gere domaine + hebergement} -> Prestataire: {Reprend application seule}
 Prestataire: {Reprend application} -> Prestataire: [Fin scenario B1]
 Prestataire: {Reprend application seule} -> Prestataire: [Fin scenario B2]`
+    },
+    {
+      name: 'Tableau - Glossaire Portail Sport Santé',
+      type: 'table',
+      code: `# Ce que comprend "le portail" - Glossaire pour l'ARS
+table "Ce que comprend le portail Sport Sante"
+  | header | # | Element | Ce que ca veut dire |
+  | 1 | Le portail lui-meme | Le site internet visible par les utilisateurs |
+  | 2 | Les donnees | Toutes les informations enregistrees (offres, professionnels, etc.) |
+  | 3 | L'hebergement | L'espace ou le portail "vit" sur internet |
+  | 4 | L'adresse internet | Le nom du portail (occitanie-sport-sante.fr) |
+  | 5 | L'assistance utilisateurs | Repondre aux questions des utilisateurs |
+  | 6 | Les corrections | Reparer les problemes quand il y en a |
+  | 7 | Les ameliorations | Ajouter de nouvelles fonctionnalites |`
     }
   ];
 

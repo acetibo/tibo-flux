@@ -8,7 +8,8 @@
 
 > **À lire EN PREMIER au démarrage et à afficher à l'utilisateur**
 
-- [x] ~~Parler du fichier `exercices/cas-reels.md` (Cas Passation Sport Santé)~~
+- [ ] Valider les templates "Passation Sport Santé" : redémarrer le serveur et vérifier dans Nouveau → Swimlanes et Nouveau → Tableaux
+- [ ] Supprimer les fichiers debug-*.js temporaires si plus nécessaires
 
 ---
 
@@ -93,14 +94,12 @@ Acteur2: <Decision?>
 
 ### Prochaine session - TODO
 
-**Thème suggéré** : Compléter le cas Passation Sport Santé
+**Thème suggéré** : Validation et améliorations UX
 
 **Tâches prévues :**
-- [x] ~~Créer le swimlane complet du cas Passation Sport Santé~~
-- [ ] Créer les 2 tableaux associés :
-  1. "Ce que comprend le portail" (glossaire)
-  2. "Les scénarios possibles" (comparatif A/B1/B2)
+- [ ] Valider les templates Sport Santé (swimlane + tableau glossaire)
 - [ ] Ajouter la syntaxe swimlane dans l'aide syntaxe de l'éditeur
+- [ ] Nettoyer les fichiers debug-*.js
 
 ---
 
