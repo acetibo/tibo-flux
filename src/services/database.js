@@ -73,6 +73,55 @@ ARS: <Choix scenario?>
     );
   }
 
+  // Migration : ajouter ou mettre à jour le template Passation Sport Santé
+  const passationTemplate = db.prepare(`
+    SELECT COUNT(*) as count FROM documents
+    WHERE is_template = 1 AND name LIKE '%Passation Sport%'
+  `).get();
+  const passationCode = `# Cas réel : Passation du Portail Sport Santé
+swimlane "Passation Portail Sport Sante - Janvier 2025"
+
+actors
+  | CREAI ORS | ARS | Prestataire |
+
+# Phase 1 : Preparation interne
+CREAI ORS: {Prepare documentation technique}
+CREAI ORS: {Prepare documentation technique} -> CREAI ORS: {Valide et vulgarise}
+
+# Phase 2 : Presentation ARS
+CREAI ORS: {Valide et vulgarise} -> ARS: {Reunion presentation scenarios}
+ARS: {Reunion presentation scenarios} -> ARS: <Choix scenario?>
+
+# Phase 3 : Selon le scenario choisi
+ARS: <Choix scenario?>
+  | A -> {Transfert complet}
+  | B1 -> {Garde domaine seul}
+  | B2 -> {Garde domaine + hebergement}
+
+# Phase 4 : Scenario A - Passation complete
+ARS: {Transfert complet} -> Prestataire: {Reprend tout}
+Prestataire: {Reprend tout} -> Prestataire: [Fin scenario A]
+
+# Phase 4 : Scenario B1/B2 - Garde partielle
+ARS: {Garde domaine seul} -> CREAI ORS: {Gere domaine}
+ARS: {Garde domaine + hebergement} -> CREAI ORS: {Gere domaine + hebergement}
+CREAI ORS: {Gere domaine} -> Prestataire: {Reprend application}
+CREAI ORS: {Gere domaine + hebergement} -> Prestataire: {Reprend application seule}
+Prestataire: {Reprend application} -> Prestataire: [Fin scenario B1]
+Prestataire: {Reprend application seule} -> Prestataire: [Fin scenario B2]`;
+  if (passationTemplate.count === 0) {
+    db.prepare(`
+      INSERT INTO documents (name, code, type, is_template)
+      VALUES (?, ?, ?, 1)
+    `).run('Swimlane - Passation Sport Santé', passationCode, 'swimlane');
+  } else {
+    // Mettre à jour le template existant (migration vers 3 acteurs)
+    db.prepare(`
+      UPDATE documents SET code = ?
+      WHERE is_template = 1 AND name LIKE '%Passation Sport%'
+    `).run(passationCode);
+  }
+
   // Insérer les templates par défaut s'ils n'existent pas
   const templateCount = db.prepare('SELECT COUNT(*) as count FROM documents WHERE is_template = 1').get();
   if (templateCount.count === 0) {
@@ -172,6 +221,41 @@ Cheffe projet: {Valide contenu} -> ARS: <Choix scenario?>
 ARS: <Choix scenario?>
   | A -> [Passation complete]
   | B -> [Passation partielle]`
+    },
+    {
+      name: 'Swimlane - Passation Sport Santé',
+      type: 'swimlane',
+      code: `# Cas réel : Passation du Portail Sport Santé
+swimlane "Passation Portail Sport Sante - Janvier 2025"
+
+actors
+  | CREAI ORS | ARS | Prestataire |
+
+# Phase 1 : Preparation interne
+CREAI ORS: {Prepare documentation technique}
+CREAI ORS: {Prepare documentation technique} -> CREAI ORS: {Valide et vulgarise}
+
+# Phase 2 : Presentation ARS
+CREAI ORS: {Valide et vulgarise} -> ARS: {Reunion presentation scenarios}
+ARS: {Reunion presentation scenarios} -> ARS: <Choix scenario?>
+
+# Phase 3 : Selon le scenario choisi
+ARS: <Choix scenario?>
+  | A -> {Transfert complet}
+  | B1 -> {Garde domaine seul}
+  | B2 -> {Garde domaine + hebergement}
+
+# Phase 4 : Scenario A - Passation complete
+ARS: {Transfert complet} -> Prestataire: {Reprend tout}
+Prestataire: {Reprend tout} -> Prestataire: [Fin scenario A]
+
+# Phase 4 : Scenario B1/B2 - Garde partielle
+ARS: {Garde domaine seul} -> CREAI ORS: {Gere domaine}
+ARS: {Garde domaine + hebergement} -> CREAI ORS: {Gere domaine + hebergement}
+CREAI ORS: {Gere domaine} -> Prestataire: {Reprend application}
+CREAI ORS: {Gere domaine + hebergement} -> Prestataire: {Reprend application seule}
+Prestataire: {Reprend application} -> Prestataire: [Fin scenario B1]
+Prestataire: {Reprend application seule} -> Prestataire: [Fin scenario B2]`
     }
   ];
 

@@ -16,7 +16,7 @@
 
 ### Session 2025-12-08 (dernière) ✅
 
-**Thème** : Swimlanes complets + Export ASCII
+**Thème** : Swimlanes complets + Export ASCII + Cas Passation Sport Santé
 
 **Réalisé :**
 - ✅ **Implémentation complète des Swimlanes (Module 5.2)**
@@ -36,6 +36,10 @@
   - Branches avec labels et flèches descendantes
   - Route API `/api/export-swimlane`
   - Bouton dans la modale d'export
+- ✅ **Template "Passation Sport Santé"** (cas réel ARS)
+  - 3 acteurs : CREAI ORS, ARS, Prestataire
+  - 3 scénarios : A (transfert complet), B1 (garde domaine), B2 (garde domaine + hébergement)
+  - Migration automatique pour mettre à jour les templates existants
 - ✅ 98 tests passent (88 + 10 nouveaux tests swimlaneExporter)
 
 **Syntaxe Swimlane :**
@@ -89,10 +93,10 @@ Acteur2: <Decision?>
 
 ### Prochaine session - TODO
 
-**Thème suggéré** : Cas réels ARS avec swimlanes
+**Thème suggéré** : Compléter le cas Passation Sport Santé
 
 **Tâches prévues :**
-- [ ] Créer le swimlane complet du cas Passation Sport Santé
+- [x] ~~Créer le swimlane complet du cas Passation Sport Santé~~
 - [ ] Créer les 2 tableaux associés :
   1. "Ce que comprend le portail" (glossaire)
   2. "Les scénarios possibles" (comparatif A/B1/B2)
