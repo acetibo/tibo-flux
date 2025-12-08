@@ -78,4 +78,28 @@ router.post('/export-table', (req, res) => {
   }
 });
 
+// Exporte un swimlane en ASCII
+router.post('/export-swimlane', (req, res) => {
+  try {
+    const { code, format = 'ascii' } = req.body;
+    const ast = diagramService.parse(code);
+
+    // Vérifier que c'est bien un swimlane
+    if (ast.type !== 'Swimlane') {
+      throw new Error('Le code ne contient pas de swimlane. Utilisez la syntaxe: swimlane "Titre"');
+    }
+
+    const content = diagramService.exportSwimlane(ast, format);
+
+    res.json({
+      success: true,
+      content,
+      format,
+      mimeType: 'text/plain'
+    });
+  } catch (error) {
+    res.status(400).json({ success: false, error: error.message });
+  }
+});
+
 module.exports = router;

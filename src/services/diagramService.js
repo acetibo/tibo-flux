@@ -8,6 +8,7 @@ const { parse } = require('./parser');
 const { render } = require('./renderer');
 const { exportDiagram } = require('./exporter');
 const { exportTable } = require('./tableExporter');
+const { exportSwimlane } = require('./swimlaneExporter');
 
 /**
  * Parse le code TiboFlux et retourne l'AST
@@ -45,5 +46,7 @@ module.exports = {
   parseTokens: parse,
   renderAst: render,
   // Export tableaux (ASCII, Markdown, HTML)
-  exportTable
+  exportTable,
+  // Export swimlanes (ASCII)
+  exportSwimlane
 };

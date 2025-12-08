@@ -16,7 +16,7 @@
 
 ### Session 2025-12-08 (dernière) ✅
 
-**Thème** : Swimlanes - Diagrammes multi-acteurs
+**Thème** : Swimlanes complets + Export ASCII
 
 **Réalisé :**
 - ✅ **Implémentation complète des Swimlanes (Module 5.2)**
@@ -29,7 +29,14 @@
 - ✅ **Template swimlane** ajouté dans l'éditeur ("Nouveau" → "Swimlanes")
   - Migration automatique pour bases existantes
   - Support complet dans l'UI (icône 👥, détection du type)
-- ✅ 88 tests passent (18 nouveaux tests swimlanes)
+- ✅ **Export ASCII art pour swimlanes**
+  - Nouveau module `swimlaneExporter.js`
+  - Bordures box-drawing (╔═╗, ┌─┐, │, etc.)
+  - Flèches horizontales entre acteurs
+  - Branches avec labels et flèches descendantes
+  - Route API `/api/export-swimlane`
+  - Bouton dans la modale d'export
+- ✅ 98 tests passent (88 + 10 nouveaux tests swimlaneExporter)
 
 **Syntaxe Swimlane :**
 ```
@@ -577,5 +584,5 @@ Ce projet est conçu comme un **outil d'apprentissage** pour comprendre :
 ---
 
 **Dernière mise à jour** : 2025-12-08
-**Version** : 1.7.0
-**Status** : MVP fonctionnel - Swimlanes complets, 88 tests
+**Version** : 1.8.0
+**Status** : MVP fonctionnel - Swimlanes + Export ASCII, 98 tests

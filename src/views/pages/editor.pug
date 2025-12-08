@@ -176,7 +176,7 @@ block content
               .font-medium.text-gray-800 JSON (AST)
               .text-xs.text-gray-500 Structure de données brute
         //- Tableaux
-        .mb-2
+        .mb-4
           h3.text-sm.font-semibold.text-gray-500.mb-2 Tableaux (texte)
           .grid.gap-2
             button.export-table-btn.text-left.p-3.border.rounded-lg(data-table-format="ascii" style="transition:all 0.2s")
@@ -188,6 +188,13 @@ block content
             button.export-table-btn.text-left.p-3.border.rounded-lg(data-table-format="html" style="transition:all 0.2s")
               .font-medium.text-gray-800 HTML
               .text-xs.text-gray-500 Page web autonome
+        //- Swimlanes
+        .mb-2
+          h3.text-sm.font-semibold.text-gray-500.mb-2 Swimlanes (texte)
+          .grid.gap-2
+            button.export-swimlane-btn.text-left.p-3.border.rounded-lg(data-swimlane-format="ascii" style="transition:all 0.2s")
+              .font-medium.text-gray-800 ASCII art
+              .text-xs.text-gray-500 Diagramme multi-acteurs en texte
 
   //- Modale Aide Syntaxe
   #modal-help.hidden(style="position:fixed;top:0;left:0;right:0;bottom:0;z-index:9999")
@@ -463,6 +470,19 @@ block scripts
       // Boutons tableaux (ASCII, Markdown, HTML)
       document.querySelectorAll('.export-table-btn').forEach(btn => {
         if (isTable) {
+          btn.disabled = false;
+          btn.style.opacity = '1';
+          btn.style.cursor = 'pointer';
+        } else {
+          btn.disabled = true;
+          btn.style.opacity = '0.4';
+          btn.style.cursor = 'not-allowed';
+        }
+      });
+
+      // Boutons swimlanes (ASCII)
+      document.querySelectorAll('.export-swimlane-btn').forEach(btn => {
+        if (isSwimlane) {
           btn.disabled = false;
           btn.style.opacity = '1';
           btn.style.cursor = 'pointer';
@@ -942,6 +962,43 @@ block scripts
             const a = document.createElement('a');
             a.href = url;
             a.download = `table-${Date.now()}.${extensions[format] || 'txt'}`;
+            a.click();
+            URL.revokeObjectURL(url);
+            log(`Export ${format.toUpperCase()} réussi`, 'success');
+            setStatus('Exporté', 'green');
+            closeModal('export');
+          } else {
+            throw new Error(data.error);
+          }
+        } catch (error) {
+          log(`Erreur export: ${error.message}`, 'error');
+          setStatus('Erreur', 'red');
+        }
+      });
+    });
+
+    // Export swimlanes (ASCII)
+    document.querySelectorAll('[data-swimlane-format]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        if (btn.disabled) return;
+        const format = btn.dataset.swimlaneFormat;
+        try {
+          setStatus(`Export ${format.toUpperCase()}...`, 'yellow');
+
+          const response = await fetch('/api/export-swimlane', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ code: codeEditor.value, format })
+          });
+          const data = await response.json();
+
+          if (data.success) {
+            // Télécharger le fichier texte
+            const blob = new Blob([data.content], { type: data.mimeType });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `swimlane-${Date.now()}.txt`;
             a.click();
             URL.revokeObjectURL(url);
             log(`Export ${format.toUpperCase()} réussi`, 'success');
