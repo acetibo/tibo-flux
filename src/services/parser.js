@@ -9,6 +9,7 @@ const { TokenType } = require('./lexer');
 const NodeType = {
   FLOWCHART: 'Flowchart',
   TABLE: 'Table',
+  SWIMLANE: 'Swimlane',
   TERMINAL: 'Terminal',
   PROCESS: 'Process',
   DECISION: 'Decision',
@@ -33,6 +34,9 @@ class Parser {
     this.pos = 0;
     this.nodes = new Map(); // Stocke les nœuds par leur texte
     this.connections = [];
+    this.swimlaneMode = false; // Mode swimlane actif
+    this.currentActor = null; // Acteur courant pour les nœuds
+    this.actors = []; // Liste des acteurs pour swimlanes
   }
 
   peek(offset = 0) {
@@ -64,13 +68,23 @@ class Parser {
   }
 
   // Crée ou récupère un nœud existant
-  getOrCreateNode(type, text) {
-    const key = `${type}:${text}`;
+  getOrCreateNode(type, text, actor = null) {
+    // En mode swimlane, la clé inclut l'acteur pour permettre des actions identiques pour différents acteurs
+    const actorForKey = this.swimlaneMode ? (actor || this.currentActor || 'unknown') : '';
+    const key = this.swimlaneMode ? `${type}:${text}:${actorForKey}` : `${type}:${text}`;
+
     if (!this.nodes.has(key)) {
-      const node = new ASTNode(type, {
+      const nodeProps = {
         id: `node_${this.nodes.size}`,
         text: text
-      });
+      };
+
+      // Ajoute l'acteur en mode swimlane
+      if (this.swimlaneMode) {
+        nodeProps.actor = actor || this.currentActor;
+      }
+
+      const node = new ASTNode(type, nodeProps);
       this.nodes.set(key, node);
     }
     return this.nodes.get(key);
@@ -317,6 +331,234 @@ class Parser {
     });
   }
 
+  // Parse la liste des acteurs : | Actor1 | Actor2 | Actor3 |
+  parseActorsList() {
+    const actors = [];
+
+    // Consomme l'indentation si présente
+    this.match(TokenType.INDENT);
+
+    // Doit commencer par un PIPE
+    if (this.peek().type !== TokenType.PIPE) {
+      return actors;
+    }
+
+    this.advance(); // Consomme le premier |
+
+    // Parse les acteurs jusqu'à la fin
+    while (!this.isAtEnd()) {
+      const token = this.peek();
+
+      if (token.type === TokenType.PIPE) {
+        const next = this.peek(1);
+        // Dernier PIPE de la ligne (suivi de DEDENT, EOF, ou autre type de bloc)
+        if (next.type === TokenType.DEDENT ||
+            next.type === TokenType.EOF ||
+            next.type === TokenType.INDENT ||
+            next.type === TokenType.FLOW ||
+            next.type === TokenType.TABLE ||
+            next.type === TokenType.SWIMLANE) {
+          this.advance(); // Consomme le dernier PIPE
+          break;
+        }
+        // PIPE entre les acteurs - continuer
+        this.advance();
+        continue;
+      }
+
+      if (token.type === TokenType.IDENTIFIER) {
+        actors.push(token.value.trim());
+        this.advance();
+      } else {
+        break;
+      }
+    }
+
+    // Consomme les DEDENT
+    while (this.match(TokenType.DEDENT)) {}
+
+    return actors;
+  }
+
+  // Parse un nœud avec référence d'acteur optionnelle : Acteur: {Action} ou {Action}
+  parseSwimlaneNode() {
+    const token = this.peek();
+    let actor = null;
+
+    // Vérifie si c'est une référence d'acteur (IDENTIFIER suivi de COLON)
+    if (token.type === TokenType.IDENTIFIER && this.peek(1).type === TokenType.COLON) {
+      actor = token.value.trim();
+      this.advance(); // Consomme l'identifiant
+      this.advance(); // Consomme le :
+      this.currentActor = actor;
+    }
+
+    // Parse le nœud lui-même
+    const nodeToken = this.peek();
+    let nodeType = null;
+
+    switch (nodeToken.type) {
+      case TokenType.TERMINAL:
+        nodeType = NodeType.TERMINAL;
+        break;
+      case TokenType.PROCESS:
+        nodeType = NodeType.PROCESS;
+        break;
+      case TokenType.DECISION:
+        nodeType = NodeType.DECISION;
+        break;
+      case TokenType.IO:
+        nodeType = NodeType.IO;
+        break;
+      default:
+        return null;
+    }
+
+    this.advance();
+    return this.getOrCreateNode(nodeType, nodeToken.value, actor || this.currentActor);
+  }
+
+  // Parse une chaîne de connexions swimlane
+  parseSwimlaneConnectionChain() {
+    const sourceNode = this.parseSwimlaneNode();
+    if (!sourceNode) return null;
+
+    let firstNode = sourceNode;
+    let lastNode = sourceNode;
+
+    // Vérifier s'il y a une flèche
+    while (this.match(TokenType.ARROW)) {
+      // Label optionnel
+      let label = null;
+      const stringToken = this.match(TokenType.STRING);
+      if (stringToken) {
+        label = stringToken.value;
+        this.match(TokenType.ARROW);
+      }
+
+      // Nœud cible (avec potentiel changement d'acteur)
+      const targetNode = this.parseSwimlaneNode();
+      if (!targetNode) {
+        throw new Error(`Nœud attendu après la flèche (ligne ${this.peek().line})`);
+      }
+
+      this.connections.push(new ASTNode(NodeType.CONNECTION, {
+        from: lastNode.id,
+        to: targetNode.id,
+        label: label
+      }));
+
+      lastNode = targetNode;
+    }
+
+    return { first: firstNode, last: lastNode };
+  }
+
+  // Parse les branches swimlane
+  parseSwimlaneBranches(decisionNode) {
+    while (this.match(TokenType.INDENT)) {
+      while (this.peek().type === TokenType.PIPE) {
+        this.advance(); // Consomme le |
+
+        const labelToken = this.match(TokenType.IDENTIFIER, TokenType.STRING);
+        const label = labelToken ? labelToken.value : '';
+
+        if (!this.match(TokenType.ARROW)) {
+          continue;
+        }
+
+        const chain = this.parseSwimlaneConnectionChain();
+        if (chain) {
+          this.connections.push(new ASTNode(NodeType.CONNECTION, {
+            from: decisionNode.id,
+            to: chain.first.id,
+            label: label
+          }));
+        }
+      }
+
+      while (this.match(TokenType.DEDENT)) {}
+    }
+  }
+
+  // Parse un swimlane complet
+  parseSwimlane() {
+    // Récupère le titre
+    const nameToken = this.match(TokenType.STRING);
+    const swimlaneName = nameToken ? nameToken.value : 'Swimlane';
+
+    // Active le mode swimlane
+    this.swimlaneMode = true;
+
+    // Parse les acteurs (après le mot-clé "actors")
+    while (!this.isAtEnd()) {
+      if (this.match(TokenType.ACTORS)) {
+        this.actors = this.parseActorsList();
+        break;
+      }
+
+      // Skip autres tokens jusqu'à actors
+      if (this.peek().type === TokenType.IDENTIFIER ||
+          this.peek().type === TokenType.TERMINAL ||
+          this.peek().type === TokenType.PROCESS ||
+          this.peek().type === TokenType.DECISION) {
+        break; // Pas de déclaration actors, on passe aux nœuds
+      }
+
+      this.advance();
+    }
+
+    // Parse les statements swimlane
+    while (!this.isAtEnd()) {
+      const token = this.peek();
+
+      // Fin du swimlane si on rencontre un autre type de diagramme
+      if (token.type === TokenType.FLOW ||
+          token.type === TokenType.TABLE ||
+          token.type === TokenType.SWIMLANE) {
+        break;
+      }
+
+      // Parse les nœuds et connexions swimlane
+      // Un statement swimlane doit être: IDENTIFIER COLON NOEUD (ex: "Thibaud: {Action}")
+      if (token.type === TokenType.IDENTIFIER && this.peek(1).type === TokenType.COLON) {
+        const result = this.parseSwimlaneConnectionChain();
+
+        // Si c'est une décision, chercher les branches
+        if (result && result.last && result.last.type === NodeType.DECISION) {
+          this.parseSwimlaneBranches(result.last);
+        }
+
+        continue;
+      }
+
+      // Nœud sans référence d'acteur (Terminal, Process, etc.)
+      if (token.type === TokenType.TERMINAL ||
+          token.type === TokenType.PROCESS ||
+          token.type === TokenType.DECISION ||
+          token.type === TokenType.IO) {
+
+        const result = this.parseSwimlaneConnectionChain();
+
+        if (result && result.last && result.last.type === NodeType.DECISION) {
+          this.parseSwimlaneBranches(result.last);
+        }
+
+        continue;
+      }
+
+      // Skip tokens non reconnus (PIPE, INDENT, DEDENT, IDENTIFIER seul, etc.)
+      this.advance();
+    }
+
+    return new ASTNode(NodeType.SWIMLANE, {
+      name: swimlaneName,
+      actors: this.actors,
+      nodes: Array.from(this.nodes.values()),
+      connections: this.connections
+    });
+  }
+
   parseBranches(decisionNode) {
     // Parser les branches conditionnelles
     // Format: | label -> ...
@@ -362,6 +604,11 @@ class Parser {
       return { type: 'table_declaration', table: this.parseTable() };
     }
 
+    // Swimlane declaration
+    if (this.match(TokenType.SWIMLANE)) {
+      return { type: 'swimlane_declaration', swimlane: this.parseSwimlane() };
+    }
+
     // Connection chain ou nœud seul
     const result = this.parseConnection();
 
@@ -376,6 +623,7 @@ class Parser {
   parse() {
     let flowName = 'Flowchart';
     let tableResult = null;
+    let swimlaneResult = null;
 
     while (!this.isAtEnd()) {
       const statement = this.parseStatement();
@@ -389,10 +637,20 @@ class Parser {
         tableResult = statement.table;
       }
 
+      // Si c'est un swimlane, on le stocke pour le retourner
+      if (statement && statement.type === 'swimlane_declaration') {
+        swimlaneResult = statement.swimlane;
+      }
+
       // Skip tokens non reconnus
       if (!statement && !this.isAtEnd()) {
         this.advance();
       }
+    }
+
+    // Si on a parsé un swimlane, on le retourne
+    if (swimlaneResult) {
+      return swimlaneResult;
     }
 
     // Si on a parsé un tableau, on le retourne

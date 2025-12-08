@@ -46,6 +46,33 @@ function init() {
     // La colonne existe déjà, ignorer
   }
 
+  // Migration : ajouter le template swimlane s'il n'existe pas
+  const swimlaneTemplate = db.prepare(`
+    SELECT COUNT(*) as count FROM documents
+    WHERE is_template = 1 AND type = 'swimlane'
+  `).get();
+  if (swimlaneTemplate.count === 0) {
+    db.prepare(`
+      INSERT INTO documents (name, code, type, is_template)
+      VALUES (?, ?, ?, 1)
+    `).run(
+      'Swimlane - Processus multi-acteurs',
+      `# Diagramme swimlane avec colonnes par acteur
+swimlane "Preparation reunion ARS - Janvier 2025"
+
+actors
+  | Thibaud | Cheffe projet | ARS |
+
+Thibaud: {Prepare documentation}
+Thibaud: {Prepare documentation} -> Cheffe projet: {Valide contenu}
+Cheffe projet: {Valide contenu} -> ARS: <Choix scenario?>
+ARS: <Choix scenario?>
+  | A -> [Passation complete]
+  | B -> [Passation partielle]`,
+      'swimlane'
+    );
+  }
+
   // Insérer les templates par défaut s'ils n'existent pas
   const templateCount = db.prepare('SELECT COUNT(*) as count FROM documents WHERE is_template = 1').get();
   if (templateCount.count === 0) {
@@ -129,6 +156,22 @@ table "Rapport trimestriel"
   | Ventes:r2 | 100 | 150 | 200 |
   | - | 120 | 180 | 220 |
   | Total:c3 | 970 |`
+    },
+    {
+      name: 'Swimlane - Processus multi-acteurs',
+      type: 'swimlane',
+      code: `# Diagramme swimlane avec colonnes par acteur
+swimlane "Preparation reunion ARS - Janvier 2025"
+
+actors
+  | Thibaud | Cheffe projet | ARS |
+
+Thibaud: {Prepare documentation}
+Thibaud: {Prepare documentation} -> Cheffe projet: {Valide contenu}
+Cheffe projet: {Valide contenu} -> ARS: <Choix scenario?>
+ARS: <Choix scenario?>
+  | A -> [Passation complete]
+  | B -> [Passation partielle]`
     }
   ];
 

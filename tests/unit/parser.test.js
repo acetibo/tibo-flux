@@ -229,4 +229,124 @@ table "Budget"
       expect(ast.rows[1][0].align).toBe('center');
     });
   });
+
+  describe('Swimlanes', () => {
+    test('parse un swimlane simple', () => {
+      const code = `
+swimlane "Réunion ARS"
+
+actors
+  | Thibaud | Cheffe projet | ARS |
+`;
+      const ast = parseCode(code);
+
+      expect(ast.type).toBe('Swimlane');
+      expect(ast.name).toBe('Réunion ARS');
+      expect(ast.actors).toEqual(['Thibaud', 'Cheffe projet', 'ARS']);
+    });
+
+    test('parse les acteurs du swimlane', () => {
+      const code = `
+swimlane "Test"
+actors
+  | Alice | Bob | Charlie |
+`;
+      const ast = parseCode(code);
+
+      expect(ast.actors).toHaveLength(3);
+      expect(ast.actors).toContain('Alice');
+      expect(ast.actors).toContain('Bob');
+      expect(ast.actors).toContain('Charlie');
+    });
+
+    test('parse une action avec référence acteur', () => {
+      const code = `
+swimlane "Test"
+actors
+  | Thibaud |
+
+Thibaud: {Prépare documentation}
+`;
+      const ast = parseCode(code);
+
+      expect(ast.nodes).toHaveLength(1);
+      expect(ast.nodes[0].type).toBe(NodeType.PROCESS);
+      expect(ast.nodes[0].text).toBe('Prépare documentation');
+      expect(ast.nodes[0].actor).toBe('Thibaud');
+    });
+
+    test('parse une connexion entre acteurs', () => {
+      const code = `
+swimlane "Test"
+actors
+  | Thibaud | Cheffe |
+
+Thibaud: {Prépare doc} -> Cheffe: {Valide}
+`;
+      const ast = parseCode(code);
+
+      expect(ast.nodes).toHaveLength(2);
+      expect(ast.connections).toHaveLength(1);
+
+      const node1 = ast.nodes.find(n => n.text === 'Prépare doc');
+      const node2 = ast.nodes.find(n => n.text === 'Valide');
+
+      expect(node1.actor).toBe('Thibaud');
+      expect(node2.actor).toBe('Cheffe');
+      expect(ast.connections[0].from).toBe(node1.id);
+      expect(ast.connections[0].to).toBe(node2.id);
+    });
+
+    test('parse un swimlane complet avec branches', () => {
+      const code = `
+swimlane "Réunion ARS - Janvier 2025"
+
+actors
+  | Thibaud | Cheffe projet | ARS |
+
+Thibaud: {Prépare documentation}
+Thibaud: {Prépare documentation} -> Cheffe projet: {Valide contenu}
+Cheffe projet: {Valide contenu} -> ARS: <Choix scénario?>
+ARS: <Choix scénario?>
+  | A -> [Passation complète]
+  | B -> [Passation partielle]
+`;
+      const ast = parseCode(code);
+
+      expect(ast.type).toBe('Swimlane');
+      expect(ast.name).toBe('Réunion ARS - Janvier 2025');
+      expect(ast.actors).toEqual(['Thibaud', 'Cheffe projet', 'ARS']);
+      expect(ast.nodes.length).toBeGreaterThanOrEqual(4);
+      expect(ast.connections.length).toBeGreaterThanOrEqual(3);
+
+      // Vérifie que les acteurs sont bien associés aux nœuds
+      const prepareDoc = ast.nodes.find(n => n.text === 'Prépare documentation');
+      expect(prepareDoc.actor).toBe('Thibaud');
+
+      const valide = ast.nodes.find(n => n.text === 'Valide contenu');
+      expect(valide.actor).toBe('Cheffe projet');
+
+      const choix = ast.nodes.find(n => n.text === 'Choix scénario?');
+      expect(choix.actor).toBe('ARS');
+    });
+
+    test('parse des nœuds terminaux dans swimlane', () => {
+      const code = `
+swimlane "Test"
+actors
+  | Alice |
+
+Alice: [Début] -> Alice: {Action} -> Alice: [Fin]
+`;
+      const ast = parseCode(code);
+
+      const debut = ast.nodes.find(n => n.text === 'Début');
+      const fin = ast.nodes.find(n => n.text === 'Fin');
+
+      expect(debut.type).toBe(NodeType.TERMINAL);
+      expect(debut.actor).toBe('Alice');
+      expect(fin.type).toBe(NodeType.TERMINAL);
+      expect(fin.actor).toBe('Alice');
+    });
+  });
 });

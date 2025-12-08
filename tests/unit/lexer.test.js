@@ -150,4 +150,67 @@ table "Mon tableau"
       expect(types).toContain(TokenType.IDENTIFIER);
     });
   });
+
+  describe('Swimlanes', () => {
+    test('tokenize le mot-clé swimlane', () => {
+      const tokens = tokenize('swimlane "Test"');
+      expect(tokens[0].type).toBe(TokenType.SWIMLANE);
+      expect(tokens[1].type).toBe(TokenType.STRING);
+      expect(tokens[1].value).toBe('Test');
+    });
+
+    test('tokenize le mot-clé actors', () => {
+      const tokens = tokenize('actors');
+      expect(tokens[0].type).toBe(TokenType.ACTORS);
+    });
+
+    test('tokenize une liste d\'acteurs', () => {
+      const tokens = tokenize('| Thibaud | Cheffe projet | ARS |');
+      const pipeCount = tokens.filter(t => t.type === TokenType.PIPE).length;
+      expect(pipeCount).toBe(4);
+      const identifiers = tokens.filter(t => t.type === TokenType.IDENTIFIER);
+      expect(identifiers.map(t => t.value)).toEqual(['Thibaud', 'Cheffe projet', 'ARS']);
+    });
+
+    test('tokenize une référence acteur avec deux-points', () => {
+      const tokens = tokenize('Thibaud: {Action}');
+      expect(tokens[0].type).toBe(TokenType.IDENTIFIER);
+      expect(tokens[0].value).toBe('Thibaud');
+      expect(tokens[1].type).toBe(TokenType.COLON);
+      expect(tokens[2].type).toBe(TokenType.PROCESS);
+      expect(tokens[2].value).toBe('Action');
+    });
+
+    test('tokenize une connexion swimlane complète', () => {
+      const code = 'Thibaud: {Prépare doc} -> Cheffe: {Valide}';
+      const tokens = tokenize(code);
+      const types = tokens.map(t => t.type);
+      expect(types).toContain(TokenType.IDENTIFIER);
+      expect(types).toContain(TokenType.COLON);
+      expect(types).toContain(TokenType.PROCESS);
+      expect(types).toContain(TokenType.ARROW);
+    });
+
+    test('tokenize un swimlane complet', () => {
+      const code = `
+swimlane "Réunion ARS"
+
+actors
+  | Thibaud | Cheffe projet | ARS |
+
+Thibaud: {Prépare documentation}
+Thibaud: {Prépare documentation} -> Cheffe projet: {Valide contenu}
+`;
+      const tokens = tokenize(code);
+      const types = tokens.map(t => t.type);
+      expect(types).toContain(TokenType.SWIMLANE);
+      expect(types).toContain(TokenType.STRING);
+      expect(types).toContain(TokenType.ACTORS);
+      expect(types).toContain(TokenType.PIPE);
+      expect(types).toContain(TokenType.IDENTIFIER);
+      expect(types).toContain(TokenType.COLON);
+      expect(types).toContain(TokenType.PROCESS);
+      expect(types).toContain(TokenType.ARROW);
+    });
+  });
 });

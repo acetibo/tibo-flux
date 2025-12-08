@@ -118,4 +118,86 @@ table "Test"
       expect(svg).toContain('Valeur');
     });
   });
+
+  describe('Swimlanes', () => {
+    test('génère un SVG valide pour un swimlane', () => {
+      const code = `
+swimlane "Test"
+actors
+  | Alice | Bob |
+
+Alice: {Action}
+`;
+      const svg = renderCode(code);
+      expect(svg).toContain('<svg');
+      expect(svg).toContain('</svg>');
+    });
+
+    test('affiche le titre du swimlane', () => {
+      const code = `
+swimlane "Mon Swimlane"
+actors
+  | Alice |
+
+Alice: {Action}
+`;
+      const svg = renderCode(code);
+      expect(svg).toContain('Mon Swimlane');
+    });
+
+    test('affiche les en-têtes des colonnes acteurs', () => {
+      const code = `
+swimlane "Test"
+actors
+  | Thibaud | Cheffe projet | ARS |
+`;
+      const svg = renderCode(code);
+      expect(svg).toContain('Thibaud');
+      expect(svg).toContain('Cheffe projet');
+      expect(svg).toContain('ARS');
+    });
+
+    test('rend les nœuds dans leur colonne', () => {
+      const code = `
+swimlane "Test"
+actors
+  | Alice | Bob |
+
+Alice: {Action Alice}
+Bob: {Action Bob}
+`;
+      const svg = renderCode(code);
+      expect(svg).toContain('Action Alice');
+      expect(svg).toContain('Action Bob');
+    });
+
+    test('rend les connexions entre acteurs', () => {
+      const code = `
+swimlane "Test"
+actors
+  | Alice | Bob |
+
+Alice: {Action} -> Bob: {Réponse}
+`;
+      const svg = renderCode(code);
+      expect(svg).toContain('<path');
+      expect(svg).toContain('marker-end="url(#arrowhead)"');
+    });
+
+    test('rend les branches de décision', () => {
+      const code = `
+swimlane "Test"
+actors
+  | Alice |
+
+Alice: <Choix?>
+  | A -> [Option A]
+  | B -> [Option B]
+`;
+      const svg = renderCode(code);
+      expect(svg).toContain('Choix?');
+      expect(svg).toContain('Option A');
+      expect(svg).toContain('Option B');
+    });
+  });
 });

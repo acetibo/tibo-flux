@@ -34,6 +34,18 @@ const CONFIG = {
     cellText: '#374151',
     fontSize: 14,
     headerFontSize: 14
+  },
+  // Configuration des swimlanes
+  swimlane: {
+    laneWidth: 200,
+    laneHeaderHeight: 50,
+    nodeSpacingY: 80,
+    lanePadding: 20,
+    headerFill: '#e0e7ff',
+    headerStroke: '#4f46e5',
+    headerText: '#1e1b4b',
+    laneBorderColor: '#d1d5db',
+    laneFill: '#fafafa'
   }
 };
 
@@ -892,13 +904,436 @@ class TableRenderer {
   }
 }
 
+class SwimlaneRenderer {
+  constructor(ast) {
+    this.ast = ast;
+    this.actorIndex = new Map(); // Map acteur -> index de colonne
+    this.positions = new Map(); // Map nodeId -> {x, y, width}
+    this.levels = new Map(); // Map nodeId -> niveau Y
+    this.actorWidths = new Map(); // Map acteur -> largeur de colonne
+    this.actorPositions = new Map(); // Map acteur -> position X de début
+
+    // Initialiser l'index des acteurs
+    this.ast.actors.forEach((actor, idx) => {
+      this.actorIndex.set(actor, idx);
+    });
+  }
+
+  escapeXml(str) {
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  // Calcule le layout swimlane
+  calculateLayout() {
+    const { swimlane, nodeWidth, nodeHeight } = CONFIG;
+    const numActors = this.ast.actors.length;
+
+    // Créer la map des connexions sortantes
+    const outgoingMap = new Map();
+    this.ast.connections.forEach(conn => {
+      if (!outgoingMap.has(conn.from)) {
+        outgoingMap.set(conn.from, []);
+      }
+      outgoingMap.get(conn.from).push(conn);
+    });
+
+    // Trouver les nœuds de départ
+    const hasIncoming = new Set();
+    this.ast.connections.forEach(conn => hasIncoming.add(conn.to));
+    const startNodes = this.ast.nodes.filter(node => !hasIncoming.has(node.id));
+
+    if (startNodes.length === 0 && this.ast.nodes.length > 0) {
+      startNodes.push(this.ast.nodes[0]);
+    }
+
+    // Calculer le niveau de chaque nœud (DFS)
+    const calculateMaxLevel = (nodeId, currentLevel, visited = new Set()) => {
+      if (visited.has(nodeId)) return;
+      visited.add(nodeId);
+
+      const existingLevel = this.levels.get(nodeId);
+      if (existingLevel === undefined || currentLevel > existingLevel) {
+        this.levels.set(nodeId, currentLevel);
+      }
+
+      const outgoing = outgoingMap.get(nodeId) || [];
+      outgoing.forEach(conn => {
+        const targetNode = this.ast.nodes.find(n => n.id === conn.to);
+        if (targetNode) {
+          calculateMaxLevel(targetNode.id, this.levels.get(nodeId) + 1, new Set(visited));
+        }
+      });
+    };
+
+    startNodes.forEach(node => calculateMaxLevel(node.id, 0));
+
+    // Compter le nombre max de nœuds par slot pour chaque acteur
+    const slotCounts = new Map();
+    const getSlotKey = (actorIdx, level) => `${actorIdx}-${level}`;
+    const maxNodesPerActor = new Map(); // Map acteur -> max nœuds sur un même niveau
+
+    this.ast.nodes.forEach(node => {
+      const actor = node.actor || this.ast.actors[0];
+      const actorIdx = this.actorIndex.get(actor) || 0;
+      const level = this.levels.get(node.id) || 0;
+      const slotKey = getSlotKey(actorIdx, level);
+      const count = (slotCounts.get(slotKey) || 0) + 1;
+      slotCounts.set(slotKey, count);
+
+      // Mettre à jour le max pour cet acteur
+      const currentMax = maxNodesPerActor.get(actor) || 1;
+      if (count > currentMax) {
+        maxNodesPerActor.set(actor, count);
+      }
+    });
+
+    // Calculer la largeur de chaque colonne (doublée si branches)
+    const spacing = 15;
+    let totalWidth = swimlane.lanePadding;
+
+    this.ast.actors.forEach(actor => {
+      const maxNodes = maxNodesPerActor.get(actor) || 1;
+      // Largeur = nombre de nœuds * largeur nœud + espacements
+      const colWidth = maxNodes > 1
+        ? maxNodes * nodeWidth + (maxNodes - 1) * spacing + swimlane.lanePadding * 2
+        : swimlane.laneWidth;
+
+      this.actorPositions.set(actor, totalWidth);
+      this.actorWidths.set(actor, colWidth);
+      totalWidth += colWidth;
+    });
+
+    totalWidth += swimlane.lanePadding;
+
+    // Calculer les positions des nœuds
+    const slotCounter = new Map();
+
+    this.ast.nodes.forEach(node => {
+      const actor = node.actor || this.ast.actors[0];
+      const actorIdx = this.actorIndex.get(actor) || 0;
+      const level = this.levels.get(node.id) || 0;
+      const slotKey = getSlotKey(actorIdx, level);
+
+      const totalInSlot = slotCounts.get(slotKey) || 1;
+      const slotNum = slotCounter.get(slotKey) || 0;
+      slotCounter.set(slotKey, slotNum + 1);
+
+      const colX = this.actorPositions.get(actor);
+      const colWidth = this.actorWidths.get(actor);
+
+      let x;
+      if (totalInSlot > 1) {
+        // Plusieurs nœuds: côte à côte avec taille normale
+        const totalNodesWidth = totalInSlot * nodeWidth + (totalInSlot - 1) * spacing;
+        const startX = colX + (colWidth - totalNodesWidth) / 2;
+        x = startX + slotNum * (nodeWidth + spacing);
+      } else {
+        // Un seul nœud: centré
+        x = colX + (colWidth - nodeWidth) / 2;
+      }
+
+      // Position Y
+      const y = swimlane.laneHeaderHeight + swimlane.lanePadding +
+                level * (nodeHeight + swimlane.nodeSpacingY);
+
+      this.positions.set(node.id, { x, y, width: nodeWidth });
+    });
+
+    // Calculer les dimensions totales
+    const maxLevel = Math.max(...[...this.levels.values()], 0);
+
+    const height = swimlane.laneHeaderHeight + swimlane.lanePadding * 2 +
+                   (maxLevel + 1) * (nodeHeight + swimlane.nodeSpacingY);
+
+    return { width: totalWidth, height, maxLevel };
+  }
+
+  renderNode(node, pos) {
+    const { nodeWidth, nodeHeight, colors, fontSize } = CONFIG;
+    // Utiliser la largeur effective si disponible, sinon la largeur standard
+    const w = pos.width || nodeWidth;
+
+    let shape;
+    let textY = pos.y + nodeHeight / 2 + 5;
+    let nodeColors;
+
+    switch (node.type) {
+      case NodeType.TERMINAL:
+        nodeColors = colors.terminal;
+        const rx = nodeHeight / 2;
+        shape = `
+          <rect
+            x="${pos.x}" y="${pos.y}"
+            width="${w}" height="${nodeHeight}"
+            rx="${rx}" ry="${rx}"
+            fill="${nodeColors.fill}"
+            stroke="${nodeColors.stroke}"
+            stroke-width="2"
+          />
+        `;
+        break;
+
+      case NodeType.DECISION:
+        nodeColors = colors.decision;
+        const cx = pos.x + w / 2;
+        const cy = pos.y + nodeHeight / 2;
+        const hw = w / 2;
+        const hh = nodeHeight / 2 + 10;
+        shape = `
+          <polygon
+            points="${cx},${cy - hh} ${cx + hw},${cy} ${cx},${cy + hh} ${cx - hw},${cy}"
+            fill="${nodeColors.fill}"
+            stroke="${nodeColors.stroke}"
+            stroke-width="2"
+          />
+        `;
+        textY = cy + 5;
+        break;
+
+      case NodeType.IO:
+        nodeColors = colors.io;
+        const skew = 15;
+        shape = `
+          <polygon
+            points="${pos.x + skew},${pos.y} ${pos.x + w},${pos.y} ${pos.x + w - skew},${pos.y + nodeHeight} ${pos.x},${pos.y + nodeHeight}"
+            fill="${nodeColors.fill}"
+            stroke="${nodeColors.stroke}"
+            stroke-width="2"
+          />
+        `;
+        break;
+
+      case NodeType.PROCESS:
+      default:
+        nodeColors = colors.process;
+        shape = `
+          <rect
+            x="${pos.x}" y="${pos.y}"
+            width="${w}" height="${nodeHeight}"
+            fill="${nodeColors.fill}"
+            stroke="${nodeColors.stroke}"
+            stroke-width="2"
+          />
+        `;
+    }
+
+    return `
+      <g class="node ${node.type.toLowerCase()}" data-id="${node.id}">
+        ${shape}
+        <text
+          x="${pos.x + w / 2}"
+          y="${textY}"
+          text-anchor="middle"
+          fill="${nodeColors.text}"
+          font-size="${fontSize}"
+          font-family="Arial, sans-serif"
+        >${this.escapeXml(node.text)}</text>
+      </g>
+    `;
+  }
+
+  renderConnection(conn) {
+    const { nodeWidth, nodeHeight, colors } = CONFIG;
+
+    const fromPos = this.positions.get(conn.from);
+    const toPos = this.positions.get(conn.to);
+
+    if (!fromPos || !toPos) return '';
+
+    const fromNode = this.ast.nodes.find(n => n.id === conn.from);
+
+    // Utiliser la largeur effective
+    const fromWidth = fromPos.width || nodeWidth;
+    const toWidth = toPos.width || nodeWidth;
+
+    // Points de départ et d'arrivée
+    let x1 = fromPos.x + fromWidth / 2;
+    let y1 = fromPos.y + nodeHeight;
+    let x2 = toPos.x + toWidth / 2;
+    let y2 = toPos.y;
+
+    // Ajustement pour les décisions
+    if (fromNode && fromNode.type === NodeType.DECISION) {
+      y1 += 10;
+    }
+
+    // Chemin
+    let path;
+    if (Math.abs(x1 - x2) < 5) {
+      path = `M ${x1} ${y1} L ${x2} ${y2}`;
+    } else {
+      const midY = (y1 + y2) / 2;
+      path = `M ${x1} ${y1} C ${x1} ${midY}, ${x2} ${midY}, ${x2} ${y2}`;
+    }
+
+    // Label
+    let labelSvg = '';
+    if (conn.label) {
+      const labelX = (x1 + x2) / 2;
+      const labelY = (y1 + y2) / 2 - 10;
+      labelSvg = `
+        <rect
+          x="${labelX - 20}" y="${labelY - 12}"
+          width="40" height="18"
+          fill="white"
+          rx="3"
+        />
+        <text
+          x="${labelX}"
+          y="${labelY}"
+          text-anchor="middle"
+          fill="${colors.arrow.stroke}"
+          font-size="12"
+          font-family="Arial, sans-serif"
+        >${this.escapeXml(conn.label)}</text>
+      `;
+    }
+
+    return `
+      <g class="connection">
+        <path
+          d="${path}"
+          fill="none"
+          stroke="${colors.arrow.stroke}"
+          stroke-width="2"
+          marker-end="url(#arrowhead)"
+        />
+        ${labelSvg}
+      </g>
+    `;
+  }
+
+  render() {
+    const { width, height } = this.calculateLayout();
+    const { swimlane, padding, colors, nodeWidth, nodeHeight } = CONFIG;
+
+    // Defs (flèches)
+    const defs = `
+      <defs>
+        <marker
+          id="arrowhead"
+          markerWidth="10"
+          markerHeight="7"
+          refX="9"
+          refY="3.5"
+          orient="auto"
+        >
+          <polygon
+            points="0 0, 10 3.5, 0 7"
+            fill="${colors.arrow.fill}"
+          />
+        </marker>
+      </defs>
+    `;
+
+    // Titre
+    const titleY = 25;
+    const titleSvg = `
+      <text
+        x="${width / 2}"
+        y="${titleY}"
+        text-anchor="middle"
+        fill="#374151"
+        font-size="18"
+        font-weight="bold"
+        font-family="Arial, sans-serif"
+      >${this.escapeXml(this.ast.name)}</text>
+    `;
+
+    const contentStartY = 40;
+
+    // Colonnes (lanes) des acteurs avec largeurs dynamiques
+    let lanesSvg = '';
+    this.ast.actors.forEach((actor) => {
+      const x = this.actorPositions.get(actor);
+      const colWidth = this.actorWidths.get(actor);
+      const laneHeight = height - swimlane.laneHeaderHeight;
+
+      // Fond de la colonne
+      lanesSvg += `
+        <rect
+          x="${x}" y="${contentStartY + swimlane.laneHeaderHeight}"
+          width="${colWidth}" height="${laneHeight}"
+          fill="${swimlane.laneFill}"
+          stroke="${swimlane.laneBorderColor}"
+          stroke-width="1"
+        />
+      `;
+
+      // En-tête de la colonne
+      lanesSvg += `
+        <rect
+          x="${x}" y="${contentStartY}"
+          width="${colWidth}" height="${swimlane.laneHeaderHeight}"
+          fill="${swimlane.headerFill}"
+          stroke="${swimlane.headerStroke}"
+          stroke-width="2"
+        />
+        <text
+          x="${x + colWidth / 2}"
+          y="${contentStartY + swimlane.laneHeaderHeight / 2 + 5}"
+          text-anchor="middle"
+          fill="${swimlane.headerText}"
+          font-size="14"
+          font-weight="bold"
+          font-family="Arial, sans-serif"
+        >${this.escapeXml(actor)}</text>
+      `;
+    });
+
+    // Connexions (en dessous des nœuds)
+    const connectionsSvg = this.ast.connections
+      .map(conn => this.renderConnection(conn))
+      .join('\n');
+
+    // Nœuds
+    const nodesSvg = this.ast.nodes
+      .map(node => {
+        const pos = this.positions.get(node.id);
+        if (!pos) return '';
+        return this.renderNode(node, { x: pos.x, y: pos.y + contentStartY });
+      })
+      .join('\n');
+
+    const totalHeight = height + contentStartY + padding;
+
+    return `
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 ${width} ${totalHeight}"
+        width="${width}"
+        height="${totalHeight}"
+      >
+        ${defs}
+        ${titleSvg}
+        ${lanesSvg}
+        <g transform="translate(0, ${contentStartY})">
+          ${connectionsSvg}
+        </g>
+        ${nodesSvg}
+      </svg>
+    `.trim();
+  }
+}
+
 function render(ast) {
-  // Détecter si c'est un tableau ou un flowchart
+  // Détecter le type de diagramme
   if (ast.type === NodeType.TABLE) {
     const renderer = new TableRenderer(ast);
     return renderer.render();
   }
 
+  if (ast.type === NodeType.SWIMLANE) {
+    const renderer = new SwimlaneRenderer(ast);
+    return renderer.render();
+  }
+
+  // Flowchart par défaut
   const renderer = new SVGRenderer(ast);
   return renderer.render();
 }
@@ -906,6 +1341,7 @@ function render(ast) {
 module.exports = {
   SVGRenderer,
   TableRenderer,
+  SwimlaneRenderer,
   LayoutEngine,
   render,
   CONFIG

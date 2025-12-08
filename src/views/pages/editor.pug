@@ -445,10 +445,11 @@ block scripts
       const code = editor.getValue();
       const isTable = code.includes('table "');
       const isFlowchart = code.includes('flow "');
+      const isSwimlane = code.includes('swimlane "');
 
       // Boutons diagrammes (SVG, PNG, PDF, JSON)
       document.querySelectorAll('.export-btn').forEach(btn => {
-        if (isFlowchart || isTable) {
+        if (isFlowchart || isTable || isSwimlane) {
           btn.disabled = false;
           btn.style.opacity = '1';
           btn.style.cursor = 'pointer';
@@ -547,6 +548,7 @@ block scripts
     function renderTemplatesContent(templates) {
       const flowcharts = templates.filter(t => t.type === 'flowchart');
       const tables = templates.filter(t => t.type === 'table');
+      const swimlanes = templates.filter(t => t.type === 'swimlane');
 
       let html = '';
 
@@ -556,6 +558,17 @@ block scripts
           html += `<button class="text-left p-3 border rounded-lg hover:bg-indigo-50 hover:border-indigo-300 transition" data-template-id="${t.id}">
             <div class="font-medium text-gray-800">${t.name}</div>
             <div class="text-xs text-gray-500">Template flowchart</div>
+          </button>`;
+        });
+        html += '</div></div>';
+      }
+
+      if (swimlanes.length) {
+        html += '<div class="mb-4"><h3 class="text-sm font-semibold text-gray-500 mb-2">Swimlanes</h3><div class="grid gap-2">';
+        swimlanes.forEach(t => {
+          html += `<button class="text-left p-3 border rounded-lg hover:bg-indigo-50 hover:border-indigo-300 transition" data-template-id="${t.id}">
+            <div class="font-medium text-gray-800">${t.name}</div>
+            <div class="text-xs text-gray-500">Template diagramme multi-acteurs</div>
           </button>`;
         });
         html += '</div></div>';
@@ -572,7 +585,7 @@ block scripts
         html += '</div></div>';
       }
 
-      if (!flowcharts.length && !tables.length) {
+      if (!flowcharts.length && !tables.length && !swimlanes.length) {
         html = '<div class="text-gray-500 text-center py-4">Aucun template disponible</div>';
       }
 
@@ -633,12 +646,15 @@ block scripts
       let html = '<div class="grid gap-2">';
       documents.forEach(doc => {
         const date = new Date(doc.updated_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
-        const icon = doc.type === 'flowchart' ? '📊' : '📋';
+        const icons = { flowchart: '📊', table: '📋', swimlane: '👥' };
+        const labels = { flowchart: 'Flowchart', table: 'Tableau', swimlane: 'Swimlane' };
+        const icon = icons[doc.type] || '📄';
+        const label = labels[doc.type] || doc.type;
         html += `<button class="text-left p-3 border rounded-lg hover:bg-indigo-50 hover:border-indigo-300 transition flex items-center gap-3" data-doc-id="${doc.id}">
           <span class="text-2xl">${icon}</span>
           <div class="flex-1">
             <div class="font-medium text-gray-800">${doc.name}</div>
-            <div class="text-xs text-gray-500">${doc.type === 'flowchart' ? 'Flowchart' : 'Tableau'} - ${date}</div>
+            <div class="text-xs text-gray-500">${label} - ${date}</div>
           </div>
         </button>`;
       });
@@ -686,7 +702,7 @@ block scripts
       }
 
       // Détecter le type
-      const type = code.includes('table "') ? 'table' : 'flowchart';
+      const type = code.includes('swimlane "') ? 'swimlane' : code.includes('table "') ? 'table' : 'flowchart';
       let name, shouldUpdate = false;
 
       if (currentDocument) {

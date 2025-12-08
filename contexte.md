@@ -14,7 +14,38 @@
 
 ## Historique des Sessions
 
-### Session 2025-12-07 (dernière) ✅
+### Session 2025-12-08 (dernière) ✅
+
+**Thème** : Swimlanes - Diagrammes multi-acteurs
+
+**Réalisé :**
+- ✅ **Implémentation complète des Swimlanes (Module 5.2)**
+  - Lexer : nouveaux tokens `SWIMLANE`, `ACTORS`, `COLON`
+  - Parser : AST pour swimlanes avec acteurs, références, connexions inter-acteurs
+  - Renderer : `SwimlaneRenderer` avec colonnes verticales par acteur
+- ✅ **Colonnes dynamiques** : largeur ajustée automatiquement selon le nombre de branches
+  - Si un acteur a des branches parallèles, sa colonne s'élargit
+  - Les nœuds restent à taille normale (160px) même avec plusieurs branches
+- ✅ **Template swimlane** ajouté dans l'éditeur ("Nouveau" → "Swimlanes")
+  - Migration automatique pour bases existantes
+  - Support complet dans l'UI (icône 👥, détection du type)
+- ✅ 88 tests passent (18 nouveaux tests swimlanes)
+
+**Syntaxe Swimlane :**
+```
+swimlane "Titre du processus"
+
+actors
+  | Acteur1 | Acteur2 | Acteur3 |
+
+Acteur1: {Action}
+Acteur1: {Action} -> Acteur2: {Autre action}
+Acteur2: <Decision?>
+  | A -> [Option A]
+  | B -> [Option B]
+```
+
+### Session 2025-12-07 ✅
 
 **Thème** : Améliorations UX - Onglets, Aide syntaxe, Confirmation sauvegarde
 
@@ -51,15 +82,14 @@
 
 ### Prochaine session - TODO
 
-**Thème suggéré** : Tableaux cas réels ARS
+**Thème suggéré** : Cas réels ARS avec swimlanes
 
 **Tâches prévues :**
-- [ ] Créer les 2 tableaux pour le cas Passation Sport Santé :
+- [ ] Créer le swimlane complet du cas Passation Sport Santé
+- [ ] Créer les 2 tableaux associés :
   1. "Ce que comprend le portail" (glossaire)
   2. "Les scénarios possibles" (comparatif A/B1/B2)
-- [ ] Tester et valider le rendu SVG des tableaux
-
-**Alternative** : Export ASCII art pour flowcharts ou Swimlanes (Module 5)
+- [ ] Ajouter la syntaxe swimlane dans l'aide syntaxe de l'éditeur
 
 ---
 
@@ -208,6 +238,31 @@ table "Tableau complexe"
 - Markdown - à venir
 - HTML - à venir
 
+### Swimlanes ✅
+
+Diagrammes multi-acteurs avec colonnes verticales par acteur :
+
+```
+swimlane "Titre du processus"
+
+actors
+  | Acteur1 | Acteur2 | Acteur3 |
+
+Acteur1: {Action}
+Acteur1: {Action} -> Acteur2: {Valide}
+Acteur2: {Valide} -> Acteur3: <Decision?>
+Acteur3: <Decision?>
+  | A -> [Option A]
+  | B -> [Option B]
+```
+
+**Fonctionnalités :**
+- Colonnes verticales pour chaque acteur
+- Connexions entre acteurs avec flèches traversantes
+- Support des branches conditionnelles par acteur
+- Colonnes dynamiques (s'élargissent si branches parallèles)
+- Tous les types de nœuds supportés (terminal, process, decision, I/O)
+
 ### Exemple complet
 ```
 # Processus de commande e-commerce
@@ -340,10 +395,8 @@ Exporte le SVG en différents formats :
 
 ### Limitations connues
 
-- Pas de support des swimlanes (diagrammes d'activité UML)
-- Pas de support BPMN (events, gateways complexes)
+- Pas de support BPMN complet (events, gateways complexes)
 - Pas de drag & drop pour repositionner les nœuds
-- Pas de sauvegarde des diagrammes en base de données
 
 ## Discussions et Décisions
 
@@ -523,6 +576,6 @@ Ce projet est conçu comme un **outil d'apprentissage** pour comprendre :
 
 ---
 
-**Dernière mise à jour** : 2025-12-07
-**Version** : 1.6.0
-**Status** : MVP fonctionnel - Onglets, Aide syntaxe, Confirmation save, 70 tests
+**Dernière mise à jour** : 2025-12-08
+**Version** : 1.7.0
+**Status** : MVP fonctionnel - Swimlanes complets, 88 tests
