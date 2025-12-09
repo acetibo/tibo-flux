@@ -14,7 +14,13 @@
       "Bash(git push:*)",
       "Bash(git rm:*)",
       "Bash(node debug-table.js:*)",
-      "Bash(npm install:*)"
+      "Bash(npm install:*)",
+      "Bash(node debug-table2.js:*)",
+      "Bash(node debug-swimlane.js:*)",
+      "Bash(timeout 5 node:*)",
+      "Bash(node debug-swimlane-ascii.js:*)",
+      "Bash(node debug-passation.js:*)",
+      "Bash(node debug-tableau-portail.js:*)"
     ],
     "deny": [],
     "ask": []

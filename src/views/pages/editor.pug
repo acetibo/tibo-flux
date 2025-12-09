@@ -60,6 +60,16 @@ block styles
       white-space: pre-wrap;
       word-break: break-word;
     }
+    /* Animation flash message */
+    @keyframes fadeInOut {
+      0% { opacity: 0; transform: translateY(-10px); }
+      15% { opacity: 1; transform: translateY(0); }
+      85% { opacity: 1; transform: translateY(0); }
+      100% { opacity: 0; transform: translateY(-10px); }
+    }
+    #flash-message {
+      animation: fadeInOut 2.5s ease-in-out;
+    }
 
 block content
   //- Barre de gestion des fichiers
@@ -89,9 +99,13 @@ block content
   //- Barre principale
   .mb-4.flex.items-center.justify-between
     h1.text-2xl.font-bold.text-gray-800 Éditeur TiboFlux
+    //- Message flash (caché par défaut)
+    #flash-message.hidden.px-4.py-2.rounded-lg.text-sm.font-medium.transition-all(style="animation: fadeInOut 2s ease-in-out")
     .flex.gap-2
       button#btn-render.px-4.py-2.rounded(style="background:#4f46e5;color:white")
         | Générer
+      button#btn-copy.px-4.py-2.rounded(style="background:#0891b2;color:white")
+        | Copier
       button#btn-export.px-4.py-2.rounded(style="background:#16a34a;color:white")
         | Exporter
 
@@ -188,6 +202,9 @@ block content
             button.export-table-btn.text-left.p-3.border.rounded-lg(data-table-format="html" style="transition:all 0.2s")
               .font-medium.text-gray-800 HTML
               .text-xs.text-gray-500 Page web autonome
+            button#export-docx-btn.text-left.p-3.border.rounded-lg(style="transition:all 0.2s")
+              .font-medium.text-gray-800 Word (.docx)
+              .text-xs.text-gray-500 Document Microsoft Word
         //- Swimlanes
         .mb-2
           h3.text-sm.font-semibold.text-gray-500.mb-2 Swimlanes (texte)
@@ -195,6 +212,49 @@ block content
             button.export-swimlane-btn.text-left.p-3.border.rounded-lg(data-swimlane-format="ascii" style="transition:all 0.2s")
               .font-medium.text-gray-800 ASCII art
               .text-xs.text-gray-500 Diagramme multi-acteurs en texte
+
+  //- Modale Copier (presse-papier)
+  #modal-copy.hidden(style="position:fixed;top:0;left:0;right:0;bottom:0;z-index:9999")
+    div(style="position:absolute;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5)" onclick="closeModal('copy')")
+    div(style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:white;border-radius:0.5rem;width:100%;max-width:32rem;max-height:80vh;overflow:hidden;box-shadow:0 25px 50px -12px rgba(0,0,0,0.25)")
+      .flex.items-center.justify-between.px-6.py-4.border-b
+        h2.text-xl.font-bold.text-gray-800 Copier dans le presse-papier
+        button.text-gray-400.text-2xl.cursor-pointer(onclick="closeModal('copy')" style="line-height:1") &times;
+      .p-6
+        //- Code source
+        .mb-4
+          h3.text-sm.font-semibold.text-gray-500.mb-2 Code source
+          .grid.gap-2
+            button.copy-btn.text-left.p-3.border.rounded-lg(data-copy-format="code" style="transition:all 0.2s")
+              .font-medium.text-gray-800 Code TiboFlux
+              .text-xs.text-gray-500 Le code source du diagramme
+        //- Tableaux
+        .mb-4
+          h3.text-sm.font-semibold.text-gray-500.mb-2 Tableaux (texte)
+          .grid.gap-2
+            button.copy-table-btn.text-left.p-3.border.rounded-lg(data-copy-table-format="ascii" style="transition:all 0.2s")
+              .font-medium.text-gray-800 ASCII art
+              .text-xs.text-gray-500 Tableau avec bordures texte
+            button.copy-table-btn.text-left.p-3.border.rounded-lg(data-copy-table-format="markdown" style="transition:all 0.2s")
+              .font-medium.text-gray-800 Markdown
+              .text-xs.text-gray-500 Format GitHub/GitLab
+            button.copy-table-btn.text-left.p-3.border.rounded-lg(data-copy-table-format="html" style="transition:all 0.2s")
+              .font-medium.text-gray-800 HTML
+              .text-xs.text-gray-500 Code HTML du tableau
+        //- Swimlanes
+        .mb-4
+          h3.text-sm.font-semibold.text-gray-500.mb-2 Swimlanes (texte)
+          .grid.gap-2
+            button.copy-swimlane-btn.text-left.p-3.border.rounded-lg(data-copy-swimlane-format="ascii" style="transition:all 0.2s")
+              .font-medium.text-gray-800 ASCII art
+              .text-xs.text-gray-500 Diagramme multi-acteurs en texte
+        //- Données
+        .mb-2
+          h3.text-sm.font-semibold.text-gray-500.mb-2 Données
+          .grid.gap-2
+            button.copy-btn.text-left.p-3.border.rounded-lg(data-copy-format="json" style="transition:all 0.2s")
+              .font-medium.text-gray-800 JSON (AST)
+              .text-xs.text-gray-500 Structure de données brute
 
   //- Modale Aide Syntaxe
   #modal-help.hidden(style="position:fixed;top:0;left:0;right:0;bottom:0;z-index:9999")
@@ -274,6 +334,41 @@ block content
                 |   | header | Poste | Montant:ar |
                 |   | Hebergement:al | 500 EUR:ar |
                 |   | Total:c2 |
+        //- Swimlanes
+        .mb-6
+          h3.text-lg.font-semibold.text-indigo-600.mb-3 Swimlanes (multi-acteurs)
+          .bg-gray-50.rounded-lg.p-4.text-sm
+            .mb-3
+              .font-medium.text-gray-700.mb-1 Structure de base
+              pre.bg-gray-200.p-2.rounded.text-xs.overflow-x-auto
+                | swimlane "Titre"
+                |
+                | actors
+                |   | Acteur1 | Acteur2 | Acteur3 |
+            .mb-3
+              .font-medium.text-gray-700.mb-2 Actions par acteur
+              .grid.grid-cols-1.gap-2
+                .flex.items-center.gap-2
+                  code.bg-blue-100.text-blue-800.px-2.py-1.rounded.text-xs Acteur: {Action}
+                  span.text-gray-600.text-xs Action dans la colonne de l'acteur
+                .flex.items-center.gap-2
+                  code.bg-green-100.text-green-800.px-2.py-1.rounded.text-xs Acteur1: {A} -> Acteur2: {B}
+                  span.text-gray-600.text-xs Fleche entre acteurs
+            .mt-3
+              .font-medium.text-gray-700.mb-2 Exemple complet
+              pre.bg-gray-200.p-2.rounded.text-xs.overflow-x-auto
+                | swimlane "Validation document"
+                |
+                | actors
+                |   | Auteur | Relecteur | Chef |
+                |
+                | Auteur: {Redige document}
+                | Auteur: {Redige document} -> Relecteur: {Relit}
+                | Relecteur: {Relit} -> Chef: &lt;Valide?&gt;
+                | Chef: &lt;Valide?&gt;
+                |   | oui -> [Publie]
+                |   | non -> [Refuse]
+
         //- Commentaires
         div
           h3.text-lg.font-semibold.text-indigo-600.mb-3 Commentaires
@@ -316,7 +411,7 @@ block scripts
             }
 
             // Mots-clés
-            if (stream.match(/^(flow|table)\b/)) {
+            if (stream.match(/^(flow|table|swimlane|actors)\b/)) {
               return "tiboflux-keyword";
             }
 
@@ -379,6 +474,7 @@ block scripts
     const consoleBadge = document.getElementById('console-badge');
     const currentFileEl = document.getElementById('current-file');
     const fileModifiedEl = document.getElementById('file-modified');
+    const flashMessage = document.getElementById('flash-message');
     const btnNew = document.getElementById('btn-new');
     const btnOpen = document.getElementById('btn-open');
     const btnSave = document.getElementById('btn-save');
@@ -386,6 +482,7 @@ block scripts
     const modalNew = document.getElementById('modal-new');
     const modalOpen = document.getElementById('modal-open');
     const modalExport = document.getElementById('modal-export');
+    const modalCopy = document.getElementById('modal-copy');
     const modalHelp = document.getElementById('modal-help');
     const templatesContent = document.getElementById('templates-content');
     const documentsContent = document.getElementById('documents-content');
@@ -436,7 +533,7 @@ block scripts
 
     // === Gestion des modales ===
     function openModal(type) {
-      const modals = { new: modalNew, open: modalOpen, export: modalExport, help: modalHelp };
+      const modals = { new: modalNew, open: modalOpen, export: modalExport, copy: modalCopy, help: modalHelp };
       const modal = modals[type];
       if (modal) {
         modal.classList.remove('hidden');
@@ -444,6 +541,7 @@ block scripts
         if (type === 'new') loadTemplates();
         if (type === 'open') loadDocuments();
         if (type === 'export') updateExportOptions();
+        if (type === 'copy') updateCopyOptions();
       }
     }
 
@@ -467,7 +565,7 @@ block scripts
         }
       });
 
-      // Boutons tableaux (ASCII, Markdown, HTML)
+      // Boutons tableaux (ASCII, Markdown, HTML, DOCX)
       document.querySelectorAll('.export-table-btn').forEach(btn => {
         if (isTable) {
           btn.disabled = false;
@@ -479,6 +577,20 @@ block scripts
           btn.style.cursor = 'not-allowed';
         }
       });
+
+      // Bouton Word (.docx)
+      const docxBtn = document.getElementById('export-docx-btn');
+      if (docxBtn) {
+        if (isTable) {
+          docxBtn.disabled = false;
+          docxBtn.style.opacity = '1';
+          docxBtn.style.cursor = 'pointer';
+        } else {
+          docxBtn.disabled = true;
+          docxBtn.style.opacity = '0.4';
+          docxBtn.style.cursor = 'not-allowed';
+        }
+      }
 
       // Boutons swimlanes (ASCII)
       document.querySelectorAll('.export-swimlane-btn').forEach(btn => {
@@ -494,8 +606,41 @@ block scripts
       });
     }
 
+    // Mettre à jour les options de copie selon le type de contenu
+    function updateCopyOptions() {
+      const code = editor.getValue();
+      const isTable = code.includes('table "');
+      const isSwimlane = code.includes('swimlane "');
+
+      // Boutons copie tableaux
+      document.querySelectorAll('.copy-table-btn').forEach(btn => {
+        if (isTable) {
+          btn.disabled = false;
+          btn.style.opacity = '1';
+          btn.style.cursor = 'pointer';
+        } else {
+          btn.disabled = true;
+          btn.style.opacity = '0.4';
+          btn.style.cursor = 'not-allowed';
+        }
+      });
+
+      // Boutons copie swimlanes
+      document.querySelectorAll('.copy-swimlane-btn').forEach(btn => {
+        if (isSwimlane) {
+          btn.disabled = false;
+          btn.style.opacity = '1';
+          btn.style.cursor = 'pointer';
+        } else {
+          btn.disabled = true;
+          btn.style.opacity = '0.4';
+          btn.style.cursor = 'not-allowed';
+        }
+      });
+    }
+
     function closeModal(type) {
-      const modals = { new: modalNew, open: modalOpen, export: modalExport, help: modalHelp };
+      const modals = { new: modalNew, open: modalOpen, export: modalExport, copy: modalCopy, help: modalHelp };
       const modal = modals[type];
       if (modal) {
         modal.classList.add('hidden');
@@ -509,6 +654,7 @@ block scripts
         closeModal('new');
         closeModal('open');
         closeModal('export');
+        closeModal('copy');
         closeModal('help');
       }
     });
@@ -517,6 +663,7 @@ block scripts
     btnNew.addEventListener('click', () => openModal('new'));
     btnOpen.addEventListener('click', () => openModal('open'));
     document.getElementById('btn-export').addEventListener('click', () => openModal('export'));
+    document.getElementById('btn-copy').addEventListener('click', () => openModal('copy'));
 
     // === Initialisation CodeMirror ===
     const editor = CodeMirror(document.getElementById('code-editor-wrapper'), {
@@ -860,19 +1007,98 @@ block scripts
       statusEl.className = `text-xs text-${color}-500`;
     }
 
+    // Afficher un message flash
+    function showFlash(message, type = 'success') {
+      const colors = {
+        success: 'background:#dcfce7;color:#166534;border:1px solid #86efac',
+        error: 'background:#fee2e2;color:#dc2626;border:1px solid #fca5a5',
+        info: 'background:#dbeafe;color:#1e40af;border:1px solid #93c5fd'
+      };
+      flashMessage.textContent = message;
+      flashMessage.style.cssText = colors[type] || colors.info;
+      flashMessage.classList.remove('hidden');
+      // Forcer le reflow pour relancer l'animation
+      flashMessage.style.animation = 'none';
+      flashMessage.offsetHeight;
+      flashMessage.style.animation = 'fadeInOut 2.5s ease-in-out';
+      // Cacher après l'animation
+      setTimeout(() => flashMessage.classList.add('hidden'), 2500);
+    }
+
+    // Copier du texte dans le presse-papier
+    async function copyToClipboard(text) {
+      try {
+        await navigator.clipboard.writeText(text);
+        return true;
+      } catch (err) {
+        console.error('Erreur copie presse-papier:', err);
+        return false;
+      }
+    }
+
     document.getElementById('btn-render').addEventListener('click', async () => {
       try {
         setStatus('Génération...', 'yellow');
+        const code = codeEditor.value;
+
+        // 1. Générer le SVG
         const response = await fetch('/api/render', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ code: codeEditor.value })
+          body: JSON.stringify({ code })
         });
         const data = await response.json();
         if (data.success) {
           previewSvg.innerHTML = data.svg;
           log('Diagramme généré', 'success');
           setStatus('OK', 'green');
+
+          // 2. Copier l'ASCII dans le presse-papier selon le type
+          const isTable = code.includes('table "');
+          const isSwimlane = code.includes('swimlane "');
+          const isFlowchart = code.includes('flow "');
+
+          let asciiContent = null;
+          let typeLabel = '';
+
+          if (isTable) {
+            // Export ASCII tableau
+            const asciiResp = await fetch('/api/export-table', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ code, format: 'ascii' })
+            });
+            const asciiData = await asciiResp.json();
+            if (asciiData.success) {
+              asciiContent = asciiData.content;
+              typeLabel = 'Tableau';
+            }
+          } else if (isSwimlane) {
+            // Export ASCII swimlane
+            const asciiResp = await fetch('/api/export-swimlane', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ code, format: 'ascii' })
+            });
+            const asciiData = await asciiResp.json();
+            if (asciiData.success) {
+              asciiContent = asciiData.content;
+              typeLabel = 'Swimlane';
+            }
+          } else if (isFlowchart) {
+            // Pas d'export ASCII pour flowchart, copier le code source
+            asciiContent = code;
+            typeLabel = 'Code';
+          }
+
+          // 3. Copier dans le presse-papier et afficher le flash
+          if (asciiContent) {
+            const copied = await copyToClipboard(asciiContent);
+            if (copied) {
+              showFlash(`✓ ${typeLabel} ASCII copié dans le presse-papier`, 'success');
+              log(`${typeLabel} ASCII copié dans le presse-papier`, 'success');
+            }
+          }
         } else {
           throw new Error(data.error);
         }
@@ -977,6 +1203,41 @@ block scripts
       });
     });
 
+    // Export Word (.docx)
+    document.getElementById('export-docx-btn').addEventListener('click', async () => {
+      const btn = document.getElementById('export-docx-btn');
+      if (btn.disabled) return;
+      try {
+        setStatus('Export DOCX...', 'yellow');
+
+        const response = await fetch('/api/export-table-docx', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code: codeEditor.value })
+        });
+
+        if (response.ok) {
+          // Télécharger le fichier binaire
+          const blob = await response.blob();
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `tableau-${Date.now()}.docx`;
+          a.click();
+          URL.revokeObjectURL(url);
+          log('Export DOCX réussi', 'success');
+          setStatus('Exporté', 'green');
+          closeModal('export');
+        } else {
+          const data = await response.json();
+          throw new Error(data.error || 'Erreur export DOCX');
+        }
+      } catch (error) {
+        log(`Erreur export: ${error.message}`, 'error');
+        setStatus('Erreur', 'red');
+      }
+    });
+
     // Export swimlanes (ASCII)
     document.querySelectorAll('[data-swimlane-format]').forEach(btn => {
       btn.addEventListener('click', async () => {
@@ -1010,6 +1271,110 @@ block scripts
         } catch (error) {
           log(`Erreur export: ${error.message}`, 'error');
           setStatus('Erreur', 'red');
+        }
+      });
+    });
+
+    // === COPIE PRESSE-PAPIER ===
+
+    // Copie code source et JSON
+    document.querySelectorAll('.copy-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const format = btn.dataset.copyFormat;
+        try {
+          let content = '';
+          let label = '';
+
+          if (format === 'code') {
+            content = codeEditor.value;
+            label = 'Code TiboFlux';
+          } else if (format === 'json') {
+            const response = await fetch('/api/parse', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ code: codeEditor.value })
+            });
+            const data = await response.json();
+            if (data.success) {
+              content = JSON.stringify(data.ast, null, 2);
+              label = 'JSON (AST)';
+            } else {
+              throw new Error(data.error);
+            }
+          }
+
+          if (content) {
+            const copied = await copyToClipboard(content);
+            if (copied) {
+              showFlash(`✓ ${label} copié`, 'success');
+              log(`${label} copié dans le presse-papier`, 'success');
+              closeModal('copy');
+            }
+          }
+        } catch (error) {
+          log(`Erreur copie: ${error.message}`, 'error');
+          showFlash(`✗ Erreur: ${error.message}`, 'error');
+        }
+      });
+    });
+
+    // Copie tableaux (ASCII, Markdown, HTML)
+    document.querySelectorAll('.copy-table-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        if (btn.disabled) return;
+        const format = btn.dataset.copyTableFormat;
+        try {
+          const response = await fetch('/api/export-table', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ code: codeEditor.value, format })
+          });
+          const data = await response.json();
+
+          if (data.success) {
+            const copied = await copyToClipboard(data.content);
+            if (copied) {
+              const labels = { ascii: 'ASCII', markdown: 'Markdown', html: 'HTML' };
+              showFlash(`✓ Tableau ${labels[format]} copié`, 'success');
+              log(`Tableau ${labels[format]} copié dans le presse-papier`, 'success');
+              closeModal('copy');
+            }
+          } else {
+            throw new Error(data.error);
+          }
+        } catch (error) {
+          log(`Erreur copie: ${error.message}`, 'error');
+          showFlash(`✗ Erreur: ${error.message}`, 'error');
+        }
+      });
+    });
+
+    // Copie swimlanes (ASCII)
+    document.querySelectorAll('.copy-swimlane-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        if (btn.disabled) return;
+        const format = btn.dataset.copySwimlaneFormat;
+        try {
+          const response = await fetch('/api/export-swimlane', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ code: codeEditor.value, format })
+          });
+          const data = await response.json();
+
+          if (data.success) {
+            const copied = await copyToClipboard(data.content);
+            if (copied) {
+              showFlash(`✓ Swimlane ASCII copié`, 'success');
+              log(`Swimlane ASCII copié dans le presse-papier`, 'success');
+              closeModal('copy');
+            }
+          } else {
+            throw new Error(data.error);
+          }
+        } catch (error) {
+          log(`Erreur copie: ${error.message}`, 'error');
+          showFlash(`✗ Erreur: ${error.message}`, 'error');
         }
       });
     });

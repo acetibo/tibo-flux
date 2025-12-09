@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const diagramService = require('../services/diagramService');
+const { exportToDocx } = require('../services/tableExporterDocx');
 
 // Parse le code TiboFlux et retourne l'AST (+ tokens si demandé)
 router.post('/parse', (req, res) => {
@@ -97,6 +98,29 @@ router.post('/export-swimlane', (req, res) => {
       format,
       mimeType: 'text/plain'
     });
+  } catch (error) {
+    res.status(400).json({ success: false, error: error.message });
+  }
+});
+
+// Exporte un tableau en Word (.docx)
+router.post('/export-table-docx', async (req, res) => {
+  try {
+    const { code } = req.body;
+    const ast = diagramService.parse(code);
+
+    // Vérifier que c'est bien un tableau
+    if (ast.type !== 'Table') {
+      throw new Error('Le code ne contient pas de tableau. Utilisez la syntaxe: table "Titre"');
+    }
+
+    const buffer = await exportToDocx(ast);
+
+    // Envoyer le fichier comme téléchargement
+    const filename = `tableau-${Date.now()}.docx`;
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(buffer);
   } catch (error) {
     res.status(400).json({ success: false, error: error.message });
   }

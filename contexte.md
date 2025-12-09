@@ -8,14 +8,37 @@
 
 > **À lire EN PREMIER au démarrage et à afficher à l'utilisateur**
 
-- [ ] Valider les templates "Passation Sport Santé" : redémarrer le serveur et vérifier dans Nouveau → Swimlanes et Nouveau → Tableaux
-- [ ] Supprimer les fichiers debug-*.js temporaires si plus nécessaires
+- [ ] Tester l'export Word (.docx) avec des tableaux complexes (colspan, rowspan)
 
 ---
 
 ## Historique des Sessions
 
-### Session 2025-12-08 (dernière) ✅
+### Session 2025-12-09 (dernière) ✅
+
+**Thème** : Validation templates + Export Word + Bouton Copier
+
+**Réalisé :**
+- ✅ **Validation templates Sport Santé** (swimlane + tableau glossaire)
+- ✅ **Suppression fichiers debug-*.js** temporaires
+- ✅ **Documentation swimlane** ajoutée dans l'aide syntaxe de l'éditeur
+- ✅ **Coloration syntaxe** : mots-clés `swimlane` et `actors` colorés
+- ✅ **Copie ASCII automatique** sur "Générer" avec message flash
+- ✅ **Export Word (.docx)** pour les tableaux
+  - Bibliothèque `docx` installée
+  - Nouveau service `tableExporterDocx.js`
+  - Route API `/api/export-table-docx`
+  - Bouton dans la modale d'export
+- ✅ **Bouton "Copier"** avec modale presse-papier
+  - Formats : Code TiboFlux, JSON (AST)
+  - Tableaux : ASCII, Markdown, HTML
+  - Swimlanes : ASCII
+  - Message flash de confirmation
+- ✅ 98 tests passent
+
+---
+
+### Session 2025-12-08 ✅
 
 **Thème** : Swimlanes complets + Export ASCII + Cas Passation Sport Santé
 
@@ -94,12 +117,12 @@ Acteur2: <Decision?>
 
 ### Prochaine session - TODO
 
-**Thème suggéré** : Validation et améliorations UX
+**Thème suggéré** : Améliorations layout et exports
 
 **Tâches prévues :**
-- [ ] Valider les templates Sport Santé (swimlane + tableau glossaire)
-- [ ] Ajouter la syntaxe swimlane dans l'aide syntaxe de l'éditeur
-- [ ] Nettoyer les fichiers debug-*.js
+- [ ] Améliorer le layout des swimlanes (éviter chevauchements avec branches complexes)
+- [ ] Export Word (.docx) pour les swimlanes
+- [ ] Export ASCII pour les flowcharts
 
 ---
 
